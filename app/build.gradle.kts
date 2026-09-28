@@ -22,24 +22,36 @@ android {
     }
     signingConfigs {
         // CI (build.yaml) exports KEYSTORE_PATH/… — release.keystore for real
-        // secrets, ephemeral preview keystore otherwise. Local builds without
-        // those env vars fall back to the default debug signing.
+        // secrets, ephemeral preview keystore otherwise. Paths from the
+        // workflow are repo-root relative, so resolve via rootProject.file()
+        // (file() here would resolve against the app/ module dir).
         create("release") {
-            val ksPath = System.getenv("KEYSTORE_PATH")
-            if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
-                storeFile = file(ksPath)
+            val ksPath = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+            val ksFile = ksPath?.let { rootProject.file(it) }
+            if (ksFile != null) {
+                check(ksFile.exists()) { "KEYSTORE_PATH points to missing file: $ksPath" }
+                storeFile = ksFile
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
+            } else {
+                // Local builds: AGP 9 no longer auto-signs release, so fall
+                // back to the debug key explicitly (debug builds unaffected).
+                val debugKs = java.io.File(System.getProperty("user.home"), ".android/debug.keystore")
+                if (debugKs.exists()) {
+                    storeFile = debugKs
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
             }
         }
     }
     buildTypes {
         release {
-            // Only use the release keystore when CI actually provided one.
-            System.getenv("KEYSTORE_PATH")
-                ?.takeIf { it.isNotBlank() && file(it).exists() }
-                ?.let { signingConfig = signingConfigs.getByName("release") }
+            // Always assigned: misconfiguration now fails the build loudly
+            // instead of emitting an uninstallable unsigned APK.
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
