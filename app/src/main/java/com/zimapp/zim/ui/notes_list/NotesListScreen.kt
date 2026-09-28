@@ -1,5 +1,6 @@
 package com.zimapp.zim.ui.notes_list
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,8 @@ import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,16 +41,17 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zimapp.zim.domain.model.Note
-import com.zimapp.zim.ui.navigation.BottomDockWithFab
-import com.zimapp.zim.ui.navigation.DockFabMenuItem
 import com.zimapp.zim.ui.notes_list.components.ExpressiveSearchInput
 import com.zimapp.zim.ui.notes_list.components.NoteCard
 import kotlinx.coroutines.launch
@@ -61,8 +65,8 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
-    currentTab: String,
-    onTab: (String) -> Unit,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
     onOpenNote: (String) -> Unit,
     onNewNote: (isChecklist: Boolean) -> Unit = {},
     vm: NotesViewModel = koinViewModel(),
@@ -87,6 +91,8 @@ fun NotesListScreen(
         }
     }
 
+    BackHandler(menuOpen) { onMenuOpenChange(false) }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
@@ -109,15 +115,24 @@ fun NotesListScreen(
             )
             ExpandedFullScreenContainedSearchBar(state = searchState, inputField = inputField) { }
         },
-        bottomBar = {
-            BottomDockWithFab(
-                currentRoute = currentTab,
-                onTab = onTab,
-                fabMenuItems = listOf(
-                    DockFabMenuItem("Note", Icons.Filled.Edit) { onNewNote(false) },
-                    DockFabMenuItem("Checklist", Icons.Filled.Checklist) { onNewNote(true) },
-                ),
-            )
+        floatingActionButton = {
+            // Overlay slot gives the menu proper constraints (inline in the
+            // dock row the items collapsed to per-character width).
+            FloatingActionButtonMenu(
+                expanded = menuOpen,
+                button = { },
+            ) {
+                FloatingActionButtonMenuItem(
+                    onClick = { onMenuOpenChange(false); onNewNote(false) },
+                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    text = { Text("Note") },
+                )
+                FloatingActionButtonMenuItem(
+                    onClick = { onMenuOpenChange(false); onNewNote(true) },
+                    icon = { Icon(Icons.Filled.Checklist, contentDescription = null) },
+                    text = { Text("Checklist") },
+                )
+            }
         },
     ) { padding ->
         if (state.isLoading) {

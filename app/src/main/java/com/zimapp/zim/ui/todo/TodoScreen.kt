@@ -26,14 +26,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.zimapp.zim.ui.navigation.BottomDockWithFab
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodoScreen(
-    currentTab: String,
-    onTab: (String) -> Unit,
     onOpenNote: (String) -> Unit,
     onNewChecklist: () -> Unit,
     vm: TodoViewModel = koinViewModel(),
@@ -42,14 +39,6 @@ fun TodoScreen(
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("To-Do") }) },
-        bottomBar = {
-            BottomDockWithFab(
-                currentRoute = currentTab,
-                onTab = onTab,
-                onFabClick = onNewChecklist,
-                fabContentDescription = "New checklist",
-            )
-        },
     ) { padding ->
         if (notes.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {

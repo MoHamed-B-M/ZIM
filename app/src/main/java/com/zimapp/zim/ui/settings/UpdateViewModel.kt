@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.zimapp.zim.data.update.DownloadState
 import com.zimapp.zim.data.update.RemoteUpdate
 import com.zimapp.zim.data.update.canInstallUnknown
+import com.zimapp.zim.data.update.canUpdateOverInstalled
 import com.zimapp.zim.data.update.enqueueDownload
 import com.zimapp.zim.data.update.fetchUpdate
 import com.zimapp.zim.data.update.installApk
@@ -92,6 +93,12 @@ class UpdateViewModel(private val appContext: Context) : ViewModel() {
 
     fun install() {
         val file = _state.value.downloadedFile ?: return
+        if (!canUpdateOverInstalled(appContext, file)) {
+            _state.update {
+                it.copy(message = "Different signature — uninstall the current version first (Export your notes first)")
+            }
+            return
+        }
         if (!canInstallUnknown(appContext)) {
             openInstallPermission(appContext)
             _state.update { it.copy(message = "Allow “Install unknown apps”, then tap Install again") }

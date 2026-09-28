@@ -1,0 +1,83 @@
+---
+name: readme-generator
+description: >-
+  Generate a polished, professional README.md for any project — from scratch or by improving an existing one. Use this skill whenever the user mentions README, wants to improve their repo's first impression, asks about shields.io badges, wants a star history chart, contributor avatars, documentation tables, project structure trees, or mermaid architecture diagrams in their README. Also use it when someone wants their GitHub repo to "look more professional", "look legit", or make a better first impression — even if they never say the word "README". Covers badge generation, README rewrites for new versions, fork customization, and adapting README structure to different project types (libraries, apps, docs repos, monorepos). Does NOT cover: CONTRIBUTING.md, CHANGELOG, API documentation, CI/CD setup, GitHub profile READMEs, or generating docs for individual components.
+---
+
+# README Generator
+
+Generate or improve a project's README by scanning the repo and producing a polished, professional result based on real project data.
+
+## Workflow
+
+### 1. Scan the project
+
+Run `scripts/scan_project.sh <project-directory>` to collect structured JSON metadata:
+- **Project name** and description
+- **License** type
+- **Git remote** (owner and repo name)
+- **Package manager** (npm, yarn, pnpm, pip, cargo, go, etc.)
+- **Tech stack** (known frameworks/libraries detected from dependencies — e.g. react, next, prisma, tailwindcss)
+- **Engines** (required Node/npm/pnpm versions — from package.json, if present)
+- **Scripts** (install command always first, then dev/build/test/lint if present in package.json)
+- **CI setup** (provider and workflow files)
+- **Social links** (YouTube, Discord, Twitter, LinkedIn, Bluesky, Twitch)
+- **Directory structure** (top 2 levels)
+
+ The reference script checks local files first, then uses the GitHub API to look up the homepage URL and crawls that homepage for additional social links. Your own first version can stay local-file only and add this enrichment later if you want it.
+
+**Handling missing data:** The scan will return empty strings for anything it can't find. Never fabricate metadata — if a field is empty, skip the related section or badge entirely. For example: no CI workflows means no build badge; no social links means no social section.
+
+**Filling in the project description (for hero tagline and "What is this?" section):** Use the first available signal in this order:
+1. `description` field — use directly if non-empty
+2. `readme_summary` field — extracted from the existing README's first paragraph; clean up any markdown artifacts before using
+3. `directory_structure` + `package_manager` — infer the project type (web app, CLI, library, monorepo, etc.), then read **one** key file to understand the purpose (e.g. `pages/index` for web apps, `main.*` for CLIs, `src/index.*` for libraries)
+4. If still unclear, write a best-guess draft and ask the user: "I couldn't find a description for this project. I've written: '{{DRAFT}}' — does this look right?"
+
+### 2. Read the best practices guide
+
+Read `references/readme-best-practices.md` before writing. It covers structure, tone, project-type adaptation, and common pitfalls. This context makes a real difference in output quality — the guide explains the reasoning behind each section so you produce READMEs that feel intentional rather than formulaic.
+
+### 3. Build the README
+
+Use `assets/readme-template.md` as the base structure. Replace `{{PLACEHOLDER}}` markers with actual project data from the scan.
+
+When rendering the project tree, keep it close to how people browse repos: list directories before files, alphabetize within each group, and add trailing `/` markers for directories.
+
+**Adapt — don't copy blindly.** The template is a starting point. Drop sections that don't apply (e.g., no Contributing section for a personal notes repo) and adjust the tone to match the project:
+- **Libraries/frameworks**: Focus on installation, API, and examples
+- **Applications**: Focus on setup, configuration, and screenshots
+- **Docs/learning repos**: Focus on structure and navigation
+- **Small utilities/scripts**: Keep it short — hero + what it does + usage is enough
+
+**Scripts section** (insert before Tech Stack, always included):
+- Build the table from `package_manager` + `scripts` array — the scan returns script names only, not full commands
+- First row: always the install command derived from `package_manager` (e.g. `pnpm install`, `go mod download`, `pip install -r requirements.txt`)
+- For Node projects: add a row for each name in `scripts` using `<package_manager> run <name>`, in dev/build/test/lint order
+- For non-Node projects: use idiomatic commands for that ecosystem — `package_manager` alone is enough to know them (go, cargo, pip, poetry, etc.)
+- Render as a simple two-column table: `| Command | Description |`
+
+**Tech Stack section** (insert between Scripts and Project Structure):
+- Use the `tech_stack` array — these are known frameworks/libraries detected directly from dependencies (e.g. `["next", "react", "prisma", "tailwindcss"]`)
+- Use the `engines` field for required runtime versions (e.g. `"node": ">=18.0.0"`) — show as a table row or bullet
+- Omit the section entirely if both `tech_stack` is empty and `engines` is empty
+- Keep it short: a simple table or bullet list is enough. No prose needed.
+
+### 4. Add badges
+
+Read `assets/badges.json` for the full badge catalog organized by category (status, social, extras) with `{{PLACEHOLDER}}` markers for dynamic values. Use `style=for-the-badge` for all badges.
+
+**Golden rule:** Only include badges for things that actually exist. A badge for a nonexistent CI workflow or a guessed npm package is worse than no badge at all.
+
+### 5. Validate the output
+
+Review the generated README against the assertions in `evals/evals.json`. Verify:
+- No placeholder text remains (`{{PROJECT_NAME}}`, `TODO`, etc.)
+- All badges point to real shields.io URLs for things that actually exist
+- Sections are proportional to the project — a simple script doesn't need a 200-line README
+- Social badges only appear if social links were found in the scan
+- The tone is concise and direct, not marketing fluff
+
+### 6. Optionally add a diagram
+
+Only read `assets/diagrams.md` if the project has multiple components or a clear data flow (APIs, monorepos, content pipelines). Skip entirely for simple projects. Generate the diagram from the project's actual structure — the templates in the file are starting points to adapt, not copy.

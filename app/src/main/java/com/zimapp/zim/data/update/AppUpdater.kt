@@ -3,12 +3,14 @@ package com.zimapp.zim.data.update
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import java.io.File
+import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -134,6 +136,28 @@ fun queryDownload(context: Context, id: Long): DownloadState {
 
 fun canInstallUnknown(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
+
+// SHA-256 of the signing certs, or null when unreadable (API < 28).
+private fun signerDigests(context: Context, archivePath: String? = null): List<String>? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    val info = if (archivePath == null) {
+        context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+    } else {
+        context.packageManager.getPackageArchiveInfo(archivePath, PackageManager.GET_SIGNING_CERTIFICATES)
+            ?: return null
+    }
+    val signers = info.signingInfo?.apkContentsSigners ?: return null
+    val md = MessageDigest.getInstance("SHA-256")
+    return signers.map { md.digest(it.toByteArray()).joinToString(":") { b -> "%02X".format(b) } }
+}
+
+// True when the APK can install over the current app. Catches the
+// INSTALL_FAILED_UPDATE_INCOMPATIBLE case before the system installer fails.
+fun canUpdateOverInstalled(context: Context, apkFile: File): Boolean {
+    val current = signerDigests(context) ?: return true
+    val next = signerDigests(context, apkFile.absolutePath) ?: return true
+    return current.toSet() == next.toSet()
+}
 
 fun openInstallPermission(context: Context) {
     context.startActivity(
