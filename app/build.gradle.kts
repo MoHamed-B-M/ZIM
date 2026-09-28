@@ -1,10 +1,9 @@
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -48,7 +47,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions { jvmTarget = "21" }
     buildFeatures { compose = true }
 }
 
@@ -71,10 +69,10 @@ dependencies {
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
 
-    // Persistence — Room (KAPT; KSP has no published artifact for Kotlin 2.3.20)
+    // Persistence — Room via KSP 2.3.x (verified on Maven Central for Kotlin 2.3.x)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    kapt(libs.room.compiler)
+    ksp(libs.room.compiler)
 
     // DI — Koin, no annotation processing of its own
     implementation(libs.koin.core)
