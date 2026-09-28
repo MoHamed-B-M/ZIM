@@ -88,7 +88,7 @@ fun SettingsScreen(onBack: () -> Unit, onCloudConfig: () -> Unit, repo: NoteRepo
                         Column(Modifier.padding(12.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Image(
-                                painter = painterResource(option.drawableRes),
+                                painter = painterResource(option.previewRes),
                                 contentDescription = option.label,
                                 modifier = Modifier.size(48.dp),
                             )

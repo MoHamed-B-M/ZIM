@@ -1,4 +1,4 @@
-name: Build Flambo
+name: Build ZIM
 
 on:
   push:
@@ -24,7 +24,7 @@ on:
 # Cancel previous beta preview runs when a new commit lands on the same branch
 # -> preview APK from the old run is automatically superseded.
 concurrency:
-  group: flambo-${{ github.ref }}
+  group: zim-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -44,7 +44,7 @@ env:
   BASE_VERSION: "1.6.5"
   STABLE_BUILD: "8"
   BETA_CODE_OFFSET: "100000"
-  # Codename for the stable release title, e.g. "Rhyolite" → "Flambo 1.5.0+6 — Rhyolite".
+  # Codename for the stable release title, e.g. "Rhyolite" → "ZIM 1.5.0+6 — Rhyolite".
   # Empty for a maintenance release with no codename.
   RELEASE_TAGLINE: ""
 
@@ -143,8 +143,8 @@ jobs:
           echo "display=$DISPLAY" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "suffix=${SUFFIX:-}" >> "$GITHUB_OUTPUT"
-          echo "FLAMBO_VERSION_NAME=$VN" >> "$GITHUB_ENV"
-          echo "FLAMBO_VERSION_CODE=$CODE" >> "$GITHUB_ENV"
+          echo "ZIM_VERSION_NAME=$VN" >> "$GITHUB_ENV"
+          echo "ZIM_VERSION_CODE=$CODE" >> "$GITHUB_ENV"
           echo "Version: $VN+$CODE (tag $TAG)"
 
       - name: Prepare signing keystore
@@ -167,15 +167,15 @@ jobs:
             # Deterministic ephemeral keystore so PR previews are still signed (not debug unsigned)
             keytool -genkeypair -v \
               -keystore app/release.keystore \
-              -storepass flambo123 \
-              -alias flambo \
-              -keypass flambo123 \
+              -storepass zim123 \
+              -alias zim \
+              -keypass zim123 \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Flambo Preview, OU=CI, O=Flambo, L=Cairo, S=Cairo, C=EG"
+              -dname "CN=ZIM Preview, OU=CI, O=ZIM, L=Cairo, S=Cairo, C=EG"
             echo "KEYSTORE_PATH=app/release.keystore" >> "$GITHUB_ENV"
-            echo "KEYSTORE_PASSWORD=flambo123" >> "$GITHUB_ENV"
-            echo "KEY_ALIAS=flambo" >> "$GITHUB_ENV"
-            echo "KEY_PASSWORD=flambo123" >> "$GITHUB_ENV"
+            echo "KEYSTORE_PASSWORD=zim123" >> "$GITHUB_ENV"
+            echo "KEY_ALIAS=zim" >> "$GITHUB_ENV"
+            echo "KEY_PASSWORD=zim123" >> "$GITHUB_ENV"
           fi
           ls -lh app/release.keystore
 
@@ -210,7 +210,7 @@ jobs:
             find app/build -type f | head -n 100
             exit 1
           fi
-          # Friendly names keep only the Flambo-*.apk files in releases;
+          # Friendly names keep only the ZIM-*.apk files in releases;
           # raw app-*-release.apk files are never published.
           # File-safe form of the version name, e.g. 1.0.1-dev(#42) -> 1.0.1-dev-42.
           VN="${{ steps.version.outputs.name }}"
@@ -223,7 +223,7 @@ jobs:
               *armeabi-v7a*) ABI="armv7" ;;
               *) ABI="universal" ;;
             esac
-            OUT="Flambo-${SAFE}-${ABI}.apk"
+            OUT="ZIM-${SAFE}-${ABI}.apk"
             cp "$APK" "$OUT"
             sha256sum "$OUT" > "$OUT.sha256"
             cat "$OUT.sha256"
@@ -232,7 +232,7 @@ jobs:
           done
           echo "apk=$FIRST" >> "$GITHUB_OUTPUT"
           echo "friendly=$FRIENDLY" >> "$GITHUB_OUTPUT"
-          ls -lh Flambo-*.apk*
+          ls -lh ZIM-*.apk*
 
       - name: Verify APK signatures (fail if unsigned)
         # An unsigned APK installs as INSTALL_PARSE_FAILED_NO_CERTIFICATES —
@@ -241,7 +241,7 @@ jobs:
           APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | head -n1)
           echo "apksigner=$APKSIGNER"
           if [[ -z "$APKSIGNER" ]]; then echo "apksigner not found!"; exit 1; fi
-          for APK in Flambo-*.apk; do
+          for APK in ZIM-*.apk; do
             echo "→ verifying $APK"
             "$APKSIGNER" verify --print-certs "$APK" || exit 1
           done
@@ -250,10 +250,10 @@ jobs:
         if: github.ref == 'refs/heads/beta' || (github.event_name == 'pull_request' && github.base_ref == 'beta')
         uses: actions/upload-artifact@v4
         with:
-          name: Flambo-preview-${{ steps.version.outputs.name }}-build${{ github.run_number }}
+          name: ZIM-preview-${{ steps.version.outputs.name }}-build${{ github.run_number }}
           path: |
-            Flambo-*.apk
-            Flambo-*.apk.sha256
+            ZIM-*.apk
+            ZIM-*.apk.sha256
           retention-days: 7
           if-no-files-found: error
           overwrite: true
@@ -262,10 +262,10 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: Flambo-release-${{ steps.version.outputs.name }}
+          name: ZIM-release-${{ steps.version.outputs.name }}
           path: |
-            Flambo-*.apk
-            Flambo-*.apk.sha256
+            ZIM-*.apk
+            ZIM-*.apk.sha256
           retention-days: 30
           if-no-files-found: error
           overwrite: true
@@ -274,10 +274,10 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: Flambo-PR-${{ github.event.number }}-${{ steps.version.outputs.name }}
+          name: ZIM-PR-${{ github.event.number }}-${{ steps.version.outputs.name }}
           path: |
-            Flambo-*.apk
-            Flambo-*.apk.sha256
+            ZIM-*.apk
+            ZIM-*.apk.sha256
           retention-days: 7
 
       - name: Upload build directory (auto-expire)
@@ -307,7 +307,7 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: Flambo-preview-${{ needs.build.outputs.version_name }}-build${{ github.run_number }}
+          name: ZIM-preview-${{ needs.build.outputs.version_name }}-build${{ github.run_number }}
           path: ./dist
 
       - name: Prepare preview metadata
@@ -356,15 +356,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: beta-latest
-          name: "Flambo ${{ needs.build.outputs.version_name }}"
+          name: "ZIM ${{ needs.build.outputs.version_name }}"
           prerelease: true
           generate_release_notes: true
           make_latest: false
           files: |
-            ./dist/Flambo-*.apk
-            ./dist/Flambo-*.apk.sha256
+            ./dist/ZIM-*.apk
+            ./dist/ZIM-*.apk.sha256
           body: |
-            ### Flambo — Beta Preview
+            ### ZIM — Beta Preview
 
             > ⚡ **Rolling preview** — this release is **overwritten on every push to `beta`**.
             > The previous preview APK is automatically deleted when a new commit lands.
@@ -374,7 +374,7 @@ jobs:
             **Commit:** `${{ github.event.head_commit.message }}`
 
             #### Install
-            1. Download `Flambo-*.apk` below
+            1. Download `ZIM-*.apk` below
             2. Allow “Install unknown apps” if prompted
             3. Install — it is signed with the preview keystore
 
@@ -416,7 +416,7 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: Flambo-release-${{ needs.build.outputs.version_name }}
+          name: ZIM-release-${{ needs.build.outputs.version_name }}
           path: ./dist
 
       - name: Gather metadata for notes
@@ -454,7 +454,7 @@ jobs:
       - name: Generate full release notes
         id: notes
         run: |
-          TITLE="Flambo ${{ needs.build.outputs.display_version }}${{ needs.build.outputs.title_suffix }}"
+          TITLE="ZIM ${{ needs.build.outputs.display_version }}${{ needs.build.outputs.title_suffix }}"
           if [[ -n "$RELEASE_TAGLINE" ]]; then TITLE="$TITLE — $RELEASE_TAGLINE"; fi
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "# $TITLE" > release_notes.md
@@ -507,9 +507,9 @@ jobs:
 
           ## 📲 Install
 
-          1. Download `Flambo-*.apk` below
+          1. Download `ZIM-*.apk` below
           2. On Android 13+ allow **Install unknown apps** for your browser/file manager
-          3. Tap the APK to install (signed release — updates install over previous Flambo builds)
+          3. Tap the APK to install (signed release — updates install over previous ZIM builds)
 
           > Previous beta previews (`beta-latest`) remain prereleases and are **not** marked as `latest`.
 
@@ -520,7 +520,7 @@ jobs:
 
           ## 🙏 Thank you
 
-          Thanks for trying Flambo! File issues & feature requests on the **Issues** tab.
+          Thanks for trying ZIM! File issues & feature requests on the **Issues** tab.
 
           ---
           *This release was auto-generated by `build.yaml` on push to `main`.*
@@ -538,8 +538,8 @@ jobs:
           make_latest: true
           prerelease: false
           files: |
-            ./dist/Flambo-*.apk
-            ./dist/Flambo-*.apk.sha256
+            ./dist/ZIM-*.apk
+            ./dist/ZIM-*.apk.sha256
           fail_on_unmatched_files: false
 
       - name: Mark previous beta prerelease as outdated (optional)

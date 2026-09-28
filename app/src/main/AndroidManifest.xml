@@ -10,6 +10,8 @@
         android:name=".ExpressiveNotesApp"
         android:allowBackup="true"
         android:label="ZIM"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity

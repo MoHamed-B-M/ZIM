@@ -18,10 +18,13 @@ enum class AppIcon(
     val key: String,
     val label: String,
     val drawableRes: Int,
+    // Full artwork for the in-app preview. painterResource() cannot load
+    // adaptive-icon XMLs, so previews use these raster copies instead.
+    val previewRes: Int,
 ) {
-    DEFAULT("default", "Midnight", R.mipmap.ic_launcher),
-    ICON2("icon2", "Paper ring", R.mipmap.ic_launcher_2),
-    ICON3("icon3", "Stack", R.mipmap.ic_launcher_3),
+    DEFAULT("default", "Midnight", R.mipmap.ic_launcher, R.drawable.preview_icon_default),
+    ICON2("icon2", "Paper ring", R.mipmap.ic_launcher_2, R.drawable.preview_icon_2),
+    ICON3("icon3", "Stack", R.mipmap.ic_launcher_3, R.drawable.preview_icon_3),
     ;
 
     companion object {
