@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- No INTERNET by default: local-first. Only needed when user opts into cloud sync. -->
+    <uses-permission android:name="android.permission.INTERNET" android:maxSdkVersion="9999" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".ExpressiveNotesApp"
+        android:allowBackup="true"
+        android:label="Expressive Notes"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:icon="@drawable/ic_app_stack"
+            android:roundIcon="@drawable/ic_app_stack"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Selectable launcher icons (Settings → App icon). Only one enabled at a time. -->
+        <activity-alias
+            android:name=".MainActivityAlarm"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@drawable/ic_app_alarm"
+            android:roundIcon="@drawable/ic_app_alarm"
+            android:label="Expressive Notes">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".MainActivityCircle"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@drawable/ic_app_circle"
+            android:roundIcon="@drawable/ic_app_circle"
+            android:label="Expressive Notes">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="remove"
+            xmlns:tools="http://schemas.android.com/tools" />
+    </application>
+</manifest>

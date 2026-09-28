@@ -1,0 +1,15 @@
+# Gradle / Android build outputs
+.gradle/
+build/
+*/build/
+local.properties
+*.apks
+*.aab
+*.apk
+*.keystore
+!gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
