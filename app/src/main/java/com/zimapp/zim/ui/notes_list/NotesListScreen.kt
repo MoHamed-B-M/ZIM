@@ -114,7 +114,7 @@ fun NotesListScreen(
                 currentRoute = currentTab,
                 onTab = onTab,
                 fabMenuItems = listOf(
-                    DockFabMenuItem("New note", Icons.Filled.Edit) { onNewNote(false) },
+                    DockFabMenuItem("Note", Icons.Filled.Edit) { onNewNote(false) },
                     DockFabMenuItem("Checklist", Icons.Filled.Checklist) { onNewNote(true) },
                 ),
             )

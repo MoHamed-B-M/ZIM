@@ -1,9 +1,14 @@
 package com.zimapp.zim.ui.navigation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -131,7 +136,15 @@ private fun FloatingNavItem(
                 contentDescription = label,
                 tint = contentColor,
             )
-            if (selected) {
+            // Label fades + expands in on select (same spring family as the
+            // container's animateContentSize, so pill and text morph together).
+            AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) +
+                    expandHorizontally(spring(stiffness = Spring.StiffnessMedium)),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) +
+                    shrinkHorizontally(spring(stiffness = Spring.StiffnessMedium)),
+            ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
