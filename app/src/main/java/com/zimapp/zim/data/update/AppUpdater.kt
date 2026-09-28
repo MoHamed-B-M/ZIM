@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -152,7 +153,7 @@ private fun contentLength(client: OkHttpClient, url: String): Long? {
     }
 }
 
-private fun streamWhole(
+private suspend fun streamWhole(
     client: OkHttpClient,
     url: String,
     dest: File,
@@ -179,7 +180,7 @@ private fun streamWhole(
     }
 }
 
-private fun streamRange(
+private suspend fun streamRange(
     client: OkHttpClient,
     url: String,
     dest: File,
@@ -199,12 +200,12 @@ private fun streamRange(
                 val buf = ByteArray(64 * 1024)
                 var written = 0L
                 while (true) {
-                    ensureActive()
+                    currentCoroutineContext().ensureActive()
                     val n = input.read(buf)
                     if (n < 0) break
                     out.write(buf, 0, n)
                     written += n
-                    onChunk(n)
+                    onChunk(n.toLong())
                 }
                 if (written != expected) throw RangeNotSupported()
             }

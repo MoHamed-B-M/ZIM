@@ -1,8 +1,8 @@
 package com.zimapp.zim.ui.settings.lock
 
-import androidx.compose.geometry.Offset
-import androidx.compose.geometry.Size
-import androidx.compose.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
