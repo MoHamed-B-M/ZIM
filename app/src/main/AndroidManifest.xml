@@ -14,7 +14,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:localeConfig="@xml/locales_config"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
             android:name=".MainActivity"
             android:exported="true"
