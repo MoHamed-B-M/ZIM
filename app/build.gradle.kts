@@ -37,7 +37,7 @@ android {
             } else {
                 // Local builds: AGP 9 no longer auto-signs release, so fall
                 // back to the debug key explicitly (debug builds unaffected).
-                val debugKs = java.io.File(System.getProperty("user.home"), ".android/debug.keystore")
+                val debugKs = File(System.getProperty("user.home"), ".android/debug.keystore")
                 if (debugKs.exists()) {
                     storeFile = debugKs
                     storePassword = "android"
