@@ -8,6 +8,7 @@ import com.zimapp.zim.ui.note_detail.NoteDetailViewModel
 import com.zimapp.zim.ui.notes_list.NotesViewModel
 import com.zimapp.zim.ui.settings.SyncSettingsViewModel
 import com.zimapp.zim.ui.settings.UpdateViewModel
+import com.zimapp.zim.ui.todo.TodoViewModel
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
@@ -24,4 +25,5 @@ val AppModule = module {
     viewModelOf(::NoteDetailViewModel)
     viewModelOf(::SyncSettingsViewModel)
     viewModelOf(::UpdateViewModel)
+    viewModelOf(::TodoViewModel)
 }

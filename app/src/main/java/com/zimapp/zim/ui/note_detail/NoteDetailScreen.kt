@@ -58,7 +58,12 @@ fun markdownPreview(src: String): AnnotatedString = buildAnnotatedString {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun NoteDetailScreen(noteId: String?, onBack: () -> Unit, vm: NoteDetailViewModel = koinViewModel()) {
+fun NoteDetailScreen(
+    noteId: String?,
+    isChecklist: Boolean = false,
+    onBack: () -> Unit,
+    vm: NoteDetailViewModel = koinViewModel(),
+) {
     val s by vm.state.collectAsStateWithLifecycle()
     LaunchedEffect(noteId) { vm.load(noteId) }
     LaunchedEffect(s.saved) { if (s.saved) onBack() }
@@ -72,7 +77,7 @@ fun NoteDetailScreen(noteId: String?, onBack: () -> Unit, vm: NoteDetailViewMode
                     IconButton(onClick = { vm.edit(color = (s.colorToken + 1) % 6) }) {
                         Icon(Icons.Filled.PushPin, contentDescription = "Cycle color")
                     }
-                    IconButton(onClick = { vm.save() }) { Icon(Icons.Filled.Check, "Save") }
+                    IconButton(onClick = { vm.save(isChecklist) }) { Icon(Icons.Filled.Check, "Save") }
                 },
             )
         }

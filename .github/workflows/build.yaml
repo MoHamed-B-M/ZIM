@@ -41,8 +41,8 @@ env:
   # installing a beta over stable always counts as an update for Android.
   # STABLE_BUILD must keep increasing across stables — Android refuses to
   # install an update whose versionCode is not higher than the installed one.
-  BASE_VERSION: "1.6.5"
-  STABLE_BUILD: "8"
+  BASE_VERSION: "1.0.0"
+  STABLE_BUILD: "1"
   BETA_CODE_OFFSET: "100000"
   # Codename for the stable release title, e.g. "Rhyolite" → "ZIM 1.5.0+6 — Rhyolite".
   # Empty for a maintenance release with no codename.
@@ -131,7 +131,7 @@ jobs:
             TAG="v${VN}+${CODE}"
             DISPLAY="${VN}+${CODE}"
             # Only the very first stable gets the First Release title.
-            if [[ "$DISPLAY" == "1.0.1+1" ]]; then SUFFIX=" — First Release"; else SUFFIX=""; fi
+            if [[ "$DISPLAY" == "1.0.0+1" ]]; then SUFFIX=" — First Release"; else SUFFIX=""; fi
           else
             VN="${BASE_VERSION}-dev(#${{ github.run_number }})"
             CODE="$(($BETA_CODE_OFFSET + ${{ github.run_number }}))"
@@ -460,7 +460,7 @@ jobs:
           echo "# $TITLE" > release_notes.md
           echo "" >> release_notes.md
           cat >> release_notes.md <<'EOF'
-          A calm yet expressive voice recorder — crafted with Material 3 Expressive.
+          A fast, local-first notes app — crafted with Material 3 Expressive.
           EOF
           if [[ -n "${{ needs.build.outputs.title_suffix }}" ]]; then
             echo "This is the first stable release. Thank you for being here at the start." >> release_notes.md
@@ -470,8 +470,8 @@ jobs:
           > [!WARNING]
           > Coming from a beta build? **Uninstall the beta first.** Beta builds carry
           > higher version codes, and Android refuses to install over them with a
-          > lower one. Your recordings live in app-private storage — back up anything
-          > you want to keep via Share before uninstalling.
+          > lower one. Your notes live in app-private storage — back up anything
+          > you want to keep via Export before uninstalling.
 
           ## 📦 Build info
           | Field | Value |

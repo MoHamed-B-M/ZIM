@@ -39,12 +39,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.zimapp.zim.domain.repository.NoteRepository
+import com.zimapp.zim.ui.navigation.BottomDockWithFab
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onCloudConfig: () -> Unit, repo: NoteRepository = koinInject()) {
+fun SettingsScreen(
+    currentTab: String = "settings",
+    onTab: (String) -> Unit = {},
+    onBack: () -> Unit,
+    onCloudConfig: () -> Unit,
+    repo: NoteRepository = koinInject(),
+) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var msg by remember { mutableStateOf<String?>(null) }
@@ -68,7 +75,10 @@ fun SettingsScreen(onBack: () -> Unit, onCloudConfig: () -> Unit, repo: NoteRepo
     Scaffold(topBar = {
         TopAppBar(navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
             title = { Text("Settings") })
-    }) { p ->
+    },
+        bottomBar = {
+            BottomDockWithFab(currentRoute = currentTab, onTab = onTab)
+        }) { p ->
         Column(Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("App icon", style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

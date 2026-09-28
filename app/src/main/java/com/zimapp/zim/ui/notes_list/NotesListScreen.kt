@@ -1,6 +1,5 @@
 package com.zimapp.zim.ui.notes_list
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,21 +12,16 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
-import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,27 +33,21 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleFloatingActionButton
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
-import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zimapp.zim.domain.model.Note
+import com.zimapp.zim.ui.navigation.BottomDockWithFab
+import com.zimapp.zim.ui.navigation.DockFabMenuItem
 import com.zimapp.zim.ui.notes_list.components.ExpressiveSearchInput
 import com.zimapp.zim.ui.notes_list.components.NoteCard
 import kotlinx.coroutines.launch
@@ -69,13 +57,14 @@ import org.koin.androidx.compose.koinViewModel
 // - AppBarWithSearch + contained search (SearchBarSamples.kt)
 // - Staggered grid of ElevatedCards (CardSamples.kt)
 // - SwipeToDismissBox archive/delete (SwipeToDismissSamples.kt)
-// - FloatingActionButtonMenu quick-create (FloatingActionButtonMenuSamples.kt)
+// - Unified bottom dock: floating nav bar + scalloped FAB
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
+    currentTab: String,
+    onTab: (String) -> Unit,
     onOpenNote: (String) -> Unit,
     onNewNote: (isChecklist: Boolean) -> Unit = {},
-    onOpenSettings: () -> Unit,
     vm: NotesViewModel = koinViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -98,9 +87,6 @@ fun NotesListScreen(
         }
     }
 
-    var fabExpanded by rememberSaveable { mutableStateOf(false) }
-    BackHandler(fabExpanded) { fabExpanded = false }
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
@@ -119,40 +105,19 @@ fun NotesListScreen(
                         Icon(Icons.Filled.Archive, contentDescription = "Archived",
                             tint = if (state.showArchived) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
-                    }
                 },
             )
             ExpandedFullScreenContainedSearchBar(state = searchState, inputField = inputField) { }
         },
-        floatingActionButton = {
-            FloatingActionButtonMenu(
-                expanded = fabExpanded,
-                button = {
-                    ToggleFloatingActionButton(
-                        modifier = Modifier.animateFloatingActionButton(
-                            visible = true, alignment = Alignment.BottomEnd,
-                        ),
-                        checked = fabExpanded,
-                        onCheckedChange = { fabExpanded = !fabExpanded },
-                    ) {
-                        val vec by remember {
-                            derivedStateOf { if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add }
-                        }
-                        Icon(rememberVectorPainter(vec), contentDescription = null, Modifier.animateIcon({ checkedProgress }))
-                    }
-                },
-            ) {
-                FloatingActionButtonMenuItem(
-                    onClick = { fabExpanded = false; onNewNote(false) },
-                    icon = { Icon(Icons.Filled.Edit, null) }, text = { Text("New note") },
-                )
-                FloatingActionButtonMenuItem(
-                    onClick = { fabExpanded = false; onNewNote(true) },
-                    icon = { Icon(Icons.Filled.Checklist, null) }, text = { Text("Checklist") },
-                )
-            }
+        bottomBar = {
+            BottomDockWithFab(
+                currentRoute = currentTab,
+                onTab = onTab,
+                fabMenuItems = listOf(
+                    DockFabMenuItem("New note", Icons.Filled.Edit) { onNewNote(false) },
+                    DockFabMenuItem("Checklist", Icons.Filled.Checklist) { onNewNote(true) },
+                ),
+            )
         },
     ) { padding ->
         if (state.isLoading) {
