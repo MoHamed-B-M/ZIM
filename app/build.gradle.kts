@@ -14,8 +14,10 @@ android {
         applicationId = "com.example.expressivenotes"
         minSdk = 26 // Dynamic color needs 31+ at runtime; 26 keeps install base wide
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // 1.0.0 baseline; CI stamps workflow versions via APP_VERSION_* for the
+        // updater's versionCode comparison to work across beta builds.
+        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("APP_VERSION_NAME") ?: "1.0.0"
         vectorDrawables { useSupportLibrary = true }
     }
     signingConfigs {

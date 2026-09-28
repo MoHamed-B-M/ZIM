@@ -12,18 +12,20 @@ import kotlinx.coroutines.flow.map
 
 val KEY_APP_ICON = stringPreferencesKey("app_icon")
 
+// The three launcher sets: default adaptive mipmap + the two sets from
+// appicon2 / appicon3 (copied into res/ as ic_launcher_2_* / ic_launcher_3_*).
 enum class AppIcon(
     val key: String,
     val label: String,
     val drawableRes: Int,
 ) {
-    STACK("stack", "Stacked notes", R.drawable.ic_app_stack),
-    ALARM("alarm", "Reminder", R.drawable.ic_app_alarm),
-    CIRCLE("circle", "Ring note", R.drawable.ic_app_circle),
+    DEFAULT("default", "Midnight", R.mipmap.ic_launcher),
+    ICON2("icon2", "Paper ring", R.mipmap.ic_launcher_2),
+    ICON3("icon3", "Stack", R.mipmap.ic_launcher_3),
     ;
 
     companion object {
-        fun byKey(key: String?): AppIcon = entries.firstOrNull { it.key == key } ?: STACK
+        fun byKey(key: String?): AppIcon = entries.firstOrNull { it.key == key } ?: DEFAULT
     }
 }
 
@@ -42,13 +44,13 @@ fun applyAppIcon(context: Context, icon: AppIcon) {
     val pkg = context.packageName
     val all = listOf(
         ComponentName(pkg, "$pkg.MainActivity"),
-        ComponentName(pkg, "$pkg.MainActivityAlarm"),
-        ComponentName(pkg, "$pkg.MainActivityCircle"),
+        ComponentName(pkg, "$pkg.MainActivityIcon2"),
+        ComponentName(pkg, "$pkg.MainActivityIcon3"),
     )
     val target = when (icon) {
-        AppIcon.STACK -> ComponentName(pkg, "$pkg.MainActivity")
-        AppIcon.ALARM -> ComponentName(pkg, "$pkg.MainActivityAlarm")
-        AppIcon.CIRCLE -> ComponentName(pkg, "$pkg.MainActivityCircle")
+        AppIcon.DEFAULT -> ComponentName(pkg, "$pkg.MainActivity")
+        AppIcon.ICON2 -> ComponentName(pkg, "$pkg.MainActivityIcon2")
+        AppIcon.ICON3 -> ComponentName(pkg, "$pkg.MainActivityIcon3")
     }
     all.forEach { cmp ->
         pm.setComponentEnabledSetting(

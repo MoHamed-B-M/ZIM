@@ -194,6 +194,10 @@ jobs:
 
       - name: Build signed assembleRelease
         run: |
+          # Stamp the workflow-resolved version into the APK so the in-app
+          # updater's versionCode comparison works across beta builds.
+          export APP_VERSION_NAME="${{ steps.version.outputs.name }}"
+          export APP_VERSION_CODE="${{ steps.version.outputs.code }}"
           ./gradlew :app:assembleRelease --stacktrace --info --no-build-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError" -Dkotlin.daemon.jvmargs="-Xmx3g"
           echo "Build finished, APKs:"
           find app/build -name "*.apk" -type f -exec ls -lh {} \;
@@ -229,6 +233,18 @@ jobs:
           echo "apk=$FIRST" >> "$GITHUB_OUTPUT"
           echo "friendly=$FRIENDLY" >> "$GITHUB_OUTPUT"
           ls -lh Flambo-*.apk*
+
+      - name: Verify APK signatures (fail if unsigned)
+        # An unsigned APK installs as INSTALL_PARSE_FAILED_NO_CERTIFICATES —
+        # never publish one again: fail loudly here instead.
+        run: |
+          APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | head -n1)
+          echo "apksigner=$APKSIGNER"
+          if [[ -z "$APKSIGNER" ]]; then echo "apksigner not found!"; exit 1; fi
+          for APK in Flambo-*.apk; do
+            echo "→ verifying $APK"
+            "$APKSIGNER" verify --print-certs "$APK" || exit 1
+          done
 
       - name: Upload preview artifact (beta) — auto-expires
         if: github.ref == 'refs/heads/beta' || (github.event_name == 'pull_request' && github.base_ref == 'beta')

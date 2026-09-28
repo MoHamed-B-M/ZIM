@@ -7,6 +7,7 @@ import com.example.expressivenotes.domain.repository.NoteRepository
 import com.example.expressivenotes.ui.note_detail.NoteDetailViewModel
 import com.example.expressivenotes.ui.notes_list.NotesViewModel
 import com.example.expressivenotes.ui.settings.SyncSettingsViewModel
+import com.example.expressivenotes.ui.settings.UpdateViewModel
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
@@ -22,4 +23,5 @@ val AppModule = module {
     viewModelOf(::NotesViewModel)
     viewModelOf(::NoteDetailViewModel)
     viewModelOf(::SyncSettingsViewModel)
+    viewModelOf(::UpdateViewModel)
 }

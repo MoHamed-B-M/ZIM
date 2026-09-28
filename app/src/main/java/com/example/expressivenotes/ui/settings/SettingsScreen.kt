@@ -106,6 +106,7 @@ fun SettingsScreen(onBack: () -> Unit, onCloudConfig: () -> Unit, repo: NoteRepo
             OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json")) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Import backup")
             }
+            AppUpdateSection()
             msg?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             Text("Local-first: everything works offline. Trash auto-purges after 30 days.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

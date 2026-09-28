@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No INTERNET by default: local-first. Only needed when user opts into cloud sync. -->
-    <uses-permission android:name="android.permission.INTERNET" android:maxSdkVersion="9999" />
+    <!-- Local-first: INTERNET only used for opt-in cloud sync + in-app updater (GitHub releases). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- In-app updater installs downloaded APKs (GitHub-distributed; not a Play app). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".ExpressiveNotesApp"
         android:allowBackup="true"
-        android:label="Expressive Notes"
+        android:label="ZIM"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:icon="@drawable/ic_app_stack"
-            android:roundIcon="@drawable/ic_app_stack"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,31 +25,41 @@
         </activity>
         <!-- Selectable launcher icons (Settings → App icon). Only one enabled at a time. -->
         <activity-alias
-            android:name=".MainActivityAlarm"
+            android:name=".MainActivityIcon2"
             android:targetActivity=".MainActivity"
             android:exported="true"
             android:enabled="false"
-            android:icon="@drawable/ic_app_alarm"
-            android:roundIcon="@drawable/ic_app_alarm"
-            android:label="Expressive Notes">
+            android:icon="@mipmap/ic_launcher_2"
+            android:roundIcon="@mipmap/ic_launcher_2"
+            android:label="ZIM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name=".MainActivityCircle"
+            android:name=".MainActivityIcon3"
             android:targetActivity=".MainActivity"
             android:exported="true"
             android:enabled="false"
-            android:icon="@drawable/ic_app_circle"
-            android:roundIcon="@drawable/ic_app_circle"
-            android:label="Expressive Notes">
+            android:icon="@mipmap/ic_launcher_3"
+            android:roundIcon="@mipmap/ic_launcher_3"
+            android:label="ZIM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        <!-- Serves updater-downloaded APKs to the package installer. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
