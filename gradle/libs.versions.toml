@@ -51,7 +51,7 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 biometric-ktx = { group = "androidx.biometric", name = "biometric-ktx", version.ref = "biometric" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-m3color = { group = "com.kyant.m3color", name = "m3color", version.ref = "m3color" }
+m3color = { module = "com.github.Kyant0:m3color", version.ref = "m3color" }
 glance = { group = "androidx.glance", name = "glance", version.ref = "glance" }
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
