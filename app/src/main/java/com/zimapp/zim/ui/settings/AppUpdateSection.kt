@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
 // In-app updater: beta channel reads the beta-latest prerelease, stable reads
-// the latest finished release. Download via DownloadManager, install via
+// the latest finished release. Multi-connection download, install via
 // FileProvider (needs “Install unknown apps” once).
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -42,7 +42,8 @@ fun AppUpdateSection(vm: UpdateViewModel = koinViewModel()) {
                 Text(r.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (s.downloading) LinearProgressIndicator(
+            if (s.checking) LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+            if (s.downloading) LinearWavyProgressIndicator(
                 progress = { s.progress }, modifier = Modifier.fillMaxWidth())
             when {
                 s.downloadedFile != null -> Button(onClick = vm::install, modifier = Modifier.fillMaxWidth()) {

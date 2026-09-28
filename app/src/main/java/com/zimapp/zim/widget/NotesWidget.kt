@@ -2,6 +2,7 @@ package com.zimapp.zim.widget
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier

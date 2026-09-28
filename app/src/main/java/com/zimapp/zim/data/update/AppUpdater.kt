@@ -1,16 +1,19 @@
 package com.zimapp.zim.data.update
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -93,42 +96,117 @@ suspend fun fetchUpdate(client: OkHttpClient, beta: Boolean): Result<RemoteUpdat
         }
     }
 
-fun enqueueDownload(context: Context, url: String, fileName: String): Long {
-    val dm = context.getSystemService(DownloadManager::class.java)
-    val req = DownloadManager.Request(Uri.parse(url))
-        .setTitle(fileName)
-        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, fileName)
-        .setMimeType("application/vnd.android.package-archive")
-    return dm.enqueue(req)
+// Multi-connection ranged download (GitHub release assets support HTTP
+// ranges): splits the file into parts fetched in parallel, then assembles.
+// Falls back to a single stream for small files or servers ignoring ranges.
+private class RangeNotSupported : Exception()
+
+suspend fun downloadFast(
+    client: OkHttpClient,
+    url: String,
+    dest: File,
+    parts: Int = 4,
+    onProgress: (Float) -> Unit,
+): File = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    val total = contentLength(client, url)
+    if (total == null || total < 1_048_576L || parts < 2) {
+        streamWhole(client, url, dest) { done, _ ->
+            onProgress(if (total != null && total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else 0f)
+        }
+        return@withContext dest
+    }
+    try {
+        val done = AtomicLong(0)
+        val chunk = total / parts
+        coroutineScope {
+            (0 until parts).map { i ->
+                async {
+                    val start = i * chunk
+                    val end = if (i == parts - 1) total - 1 else start + chunk - 1
+                    val part = File(dest.parent, "${dest.name}.part$i")
+                    streamRange(client, url, part, start, end, expected = end - start + 1) {
+                        onProgress((done.addAndGet(it).toFloat() / total).coerceIn(0f, 1f))
+                    }
+                    part
+                }
+            }.awaitAll().forEachIndexed { _, part ->
+                dest.appendBytes(part.readBytes())
+                part.delete()
+            }
+        }
+        onProgress(1f)
+        dest
+    } catch (e: RangeNotSupported) {
+        streamWhole(client, url, dest) { done, _ ->
+            onProgress((done.toFloat() / total).coerceIn(0f, 1f))
+        }
+        dest
+    }
 }
 
-sealed interface DownloadState {
-    data class Running(val downloaded: Long, val total: Long) : DownloadState
-    data class Done(val file: File) : DownloadState
-    data class Failed(val reason: String) : DownloadState
+private fun contentLength(client: OkHttpClient, url: String): Long? {
+    val req = Request.Builder().url(url).head().build()
+    client.newCall(req).execute().use { resp ->
+        if (!resp.isSuccessful) return null
+        return resp.header("Content-Length")?.toLongOrNull()
+    }
 }
 
-fun queryDownload(context: Context, id: Long): DownloadState {
-    val dm = context.getSystemService(DownloadManager::class.java)
-    dm.query(DownloadManager.Query().setFilterById(id)).use { c ->
-        if (!c.moveToFirst()) return DownloadState.Failed("Download not found")
-        val status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-        return when (status) {
-            DownloadManager.STATUS_SUCCESSFUL -> {
-                val uri = Uri.parse(c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)))
-                val file = File(uri.path!!)
-                if (file.exists()) DownloadState.Done(file)
-                else DownloadState.Failed("File missing after download")
+private fun streamWhole(
+    client: OkHttpClient,
+    url: String,
+    dest: File,
+    onChunk: (done: Long, total: Long) -> Unit,
+) {
+    if (dest.exists()) dest.delete()
+    val req = Request.Builder().url(url).get().build()
+    client.newCall(req).execute().use { resp ->
+        if (!resp.isSuccessful) error("Download HTTP ${resp.code}")
+        val body = resp.body ?: error("Empty response")
+        var done = 0L
+        dest.outputStream().use { out ->
+            body.byteStream().use { input ->
+                val buf = ByteArray(64 * 1024)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                    done += n
+                    onChunk(done, body.contentLength())
+                }
             }
-            DownloadManager.STATUS_FAILED -> {
-                val reason = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
-                DownloadState.Failed("Download failed (reason $reason)")
-            }
-            else -> {
-                val done = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-                val total = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                DownloadState.Running(done, total)
+        }
+    }
+}
+
+private fun streamRange(
+    client: OkHttpClient,
+    url: String,
+    dest: File,
+    start: Long,
+    end: Long,
+    expected: Long,
+    onChunk: (bytes: Long) -> Unit,
+) {
+    if (dest.exists()) dest.delete()
+    val req = Request.Builder().url(url).header("Range", "bytes=$start-$end").get().build()
+    client.newCall(req).execute().use { resp ->
+        // 206 = partial content honored; anything else means ranges unsupported.
+        if (resp.code != 206) throw RangeNotSupported()
+        val body = resp.body ?: throw RangeNotSupported()
+        dest.outputStream().use { out ->
+            body.byteStream().use { input ->
+                val buf = ByteArray(64 * 1024)
+                var written = 0L
+                while (true) {
+                    ensureActive()
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                    written += n
+                    onChunk(n)
+                }
+                if (written != expected) throw RangeNotSupported()
             }
         }
     }

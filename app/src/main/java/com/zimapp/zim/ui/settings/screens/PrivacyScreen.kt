@@ -90,7 +90,7 @@ fun PrivacyScreen(
                     radius = shapeManager(isBoth = true, radius = s.cornerRadius),
                     actionType = ActionType.SWITCH,
                     variable = s.screenProtection,
-                    switchEnabled = { vm.update { it.copy(screenProtection = it) } },
+                    switchEnabled = { checked -> vm.update { it.copy(screenProtection = checked) } },
                 )
             }
             item {

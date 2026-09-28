@@ -1,21 +1,20 @@
 package com.zimapp.zim.ui.settings
 
 import android.content.Context
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zimapp.zim.data.update.DownloadState
 import com.zimapp.zim.data.update.RemoteUpdate
 import com.zimapp.zim.data.update.canInstallUnknown
 import com.zimapp.zim.data.update.canUpdateOverInstalled
-import com.zimapp.zim.data.update.enqueueDownload
+import com.zimapp.zim.data.update.downloadFast
 import com.zimapp.zim.data.update.fetchUpdate
 import com.zimapp.zim.data.update.installApk
 import com.zimapp.zim.data.update.installedVersionCode
 import com.zimapp.zim.data.update.installedVersionName
 import com.zimapp.zim.data.update.openInstallPermission
-import com.zimapp.zim.data.update.queryDownload
 import java.io.File
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,28 +65,18 @@ class UpdateViewModel(private val appContext: Context) : ViewModel() {
     fun download() = viewModelScope.launch {
         val r = _state.value.remote ?: return@launch
         _state.update { it.copy(downloading = true, progress = 0f, error = null, downloadedFile = null) }
-        val id = try {
-            enqueueDownload(appContext, r.apkUrl, r.apkName)
+        try {
+            val dir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: error("Storage unavailable")
+            val dest = File(dir, r.apkName)
+            downloadFast(client, r.apkUrl, dest) { p ->
+                _state.update { it.copy(progress = p) }
+            }
+            _state.update { it.copy(downloading = false, progress = 1f, downloadedFile = dest) }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             _state.update { it.copy(downloading = false, error = e.message ?: "Download failed") }
-            return@launch
-        }
-        while (true) {
-            when (val s = queryDownload(appContext, id)) {
-                is DownloadState.Running -> {
-                    val p = if (s.total > 0) (s.downloaded.toFloat() / s.total).coerceIn(0f, 1f) else 0f
-                    _state.update { it.copy(progress = p) }
-                    delay(500)
-                }
-                is DownloadState.Done -> {
-                    _state.update { it.copy(downloading = false, progress = 1f, downloadedFile = s.file) }
-                    return@launch
-                }
-                is DownloadState.Failed -> {
-                    _state.update { it.copy(downloading = false, error = s.reason) }
-                    return@launch
-                }
-            }
         }
     }
 

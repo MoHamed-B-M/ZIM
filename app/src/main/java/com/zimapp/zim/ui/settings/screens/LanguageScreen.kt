@@ -94,7 +94,7 @@ fun LanguageScreen(onBack: () -> Unit, vm: AppSettingsViewModel = koinViewModel(
                     radius = shapeManager(isBoth = true, radius = s.cornerRadius),
                     actionType = ActionType.SWITCH,
                     variable = s.monospaceFont,
-                    switchEnabled = { vm.update { it.copy(monospaceFont = it) } },
+                    switchEnabled = { checked -> vm.update { it.copy(monospaceFont = checked) } },
                 )
             }
         }

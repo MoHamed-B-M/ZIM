@@ -27,7 +27,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.hasRoute
 import androidx.navigation.toRoute
 import com.zimapp.zim.domain.model.AppSettings
 import com.zimapp.zim.domain.model.LockType
@@ -112,10 +111,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 val entry by nav.currentBackStackEntryAsState()
-                val destTab = when {
-                    entry?.destination?.hasRoute(Route.Todo::class) == true -> TAB_TODO
-                    entry?.destination?.hasRoute(Route.Settings::class) == true -> TAB_SETTINGS
-                    entry?.destination?.hasRoute(Route.List::class) == true -> TAB_NOTES
+                // Route strings for type-safe destinations are the qualified
+                // class names; match on the simple name (null-safe on all variants).
+                val destTab = when (entry?.destination?.route?.substringAfterLast('.')) {
+                    "Todo" -> TAB_TODO
+                    "Settings" -> TAB_SETTINGS
+                    "List" -> TAB_NOTES
                     else -> null // Detail / settings subscreens keep the last tab highlighted
                 }
                 var lastTab by rememberSaveable { mutableStateOf(TAB_NOTES) }

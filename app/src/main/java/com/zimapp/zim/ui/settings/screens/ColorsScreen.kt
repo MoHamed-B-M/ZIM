@@ -125,7 +125,7 @@ fun ColorsScreen(onBack: () -> Unit, vm: AppSettingsViewModel = koinViewModel())
                     radius = shapeManager(radius = s.cornerRadius),
                     actionType = ActionType.SWITCH,
                     variable = s.dynamicColor,
-                    switchEnabled = { vm.update { it.copy(dynamicColor = it) } },
+                    switchEnabled = { checked -> vm.update { it.copy(dynamicColor = checked) } },
                 )
             }
             item {

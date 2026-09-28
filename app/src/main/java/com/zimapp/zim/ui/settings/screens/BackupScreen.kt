@@ -127,7 +127,7 @@ fun BackupScreen(
                     radius = shapeManager(isBoth = true, radius = s.cornerRadius),
                     actionType = ActionType.SWITCH,
                     variable = s.encryptBackup,
-                    switchEnabled = { vm.update { it.copy(encryptBackup = it) } },
+                    switchEnabled = { checked -> vm.update { it.copy(encryptBackup = checked) } },
                 )
                 Spacer(modifier = Modifier.height(18.dp))
             }
