@@ -128,7 +128,7 @@ private fun SettingsGroup(
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
-            Column(content = content)
+            Column { content() }
         }
     }
 }
