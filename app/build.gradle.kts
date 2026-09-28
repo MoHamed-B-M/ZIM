@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
@@ -19,8 +19,26 @@ android {
         versionName = "1.0"
         vectorDrawables { useSupportLibrary = true }
     }
+    signingConfigs {
+        // CI (build.yaml) exports KEYSTORE_PATH/… — release.keystore for real
+        // secrets, ephemeral preview keystore otherwise. Local builds without
+        // those env vars fall back to the default debug signing.
+        create("release") {
+            val ksPath = System.getenv("KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            // Only use the release keystore when CI actually provided one.
+            System.getenv("KEYSTORE_PATH")
+                ?.takeIf { it.isNotBlank() && file(it).exists() }
+                ?.let { signingConfig = signingConfigs.getByName("release") }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -53,12 +71,12 @@ dependencies {
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
 
-    // Persistence — Room + FTS (Fts4 = FTS3/4 compat; FTS5 via callback where available)
+    // Persistence — Room (KAPT; KSP has no published artifact for Kotlin 2.3.20)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
+    kapt(libs.room.compiler)
 
-    // DI — Koin, zero KAPT/KSP overhead
+    // DI — Koin, no annotation processing of its own
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
