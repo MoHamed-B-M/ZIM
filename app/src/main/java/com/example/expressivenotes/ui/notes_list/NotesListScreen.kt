@@ -111,7 +111,6 @@ fun NotesListScreen(
                 colors = appBarColors,
                 inputField = inputField,
                 navigationIcon = {},
-                title = { Text("Notes") },
                 actions = {
                     IconButton(onClick = vm::toggleLayout) {
                         Icon(if (state.isGrid) Icons.Filled.ViewList else Icons.Filled.GridView, contentDescription = "Toggle layout")

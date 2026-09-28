@@ -59,7 +59,7 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
                 createdAt = existing?.createdAt ?: now, updatedAt = now,
                 isPinned = s.isPinned, isArchived = existing?.isArchived == true,
                 syncStatus = SyncStatus.PENDING,
-                tags = s.tagsCsv.split(',').map { t -> t.trim() }.filter { t.isNotEmpty() },
+                tags = s.tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
                 colorToken = s.colorToken)
         )
         _state.update { it.copy(saved = true) }
