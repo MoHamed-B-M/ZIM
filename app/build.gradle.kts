@@ -66,8 +66,6 @@ dependencies {
     implementation(libs.material.icons.core)
     implementation(libs.material.icons.extended)
     implementation(libs.navigation.compose)
-    implementation(libs.navigation3.runtime)
-    implementation(libs.navigation3.ui)
 
     // Persistence — Room via KSP 2.3.x (verified on Maven Central for Kotlin 2.3.x)
     implementation(libs.room.runtime)
