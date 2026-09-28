@@ -26,35 +26,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zimapp.zim.ui.markdown.MarkdownText
+import com.zimapp.zim.ui.settings.AppSettingsViewModel
 import org.koin.androidx.compose.koinViewModel
-
-// Minimal markdown → AnnotatedString (**bold**, *italic*, `code`, "- [ ]" checklist).
-fun markdownPreview(src: String): AnnotatedString = buildAnnotatedString {
-    var i = 0
-    append(src)
-    // Bold
-    Regex("\\*\\*(.+?)\\*\\*").findAll(src).forEach { m ->
-        addStyle(SpanStyle(fontWeight = FontWeight.Bold), m.range.first, m.range.last + 1)
-    }
-    Regex("`(.+?)`").findAll(src).forEach { m ->
-        addStyle(SpanStyle(fontFamily = FontFamily.Monospace, background = androidx.compose.ui.graphics.Color(0x22000000)), m.range.first, m.range.last + 1)
-    }
-    Regex("(?m)^- \\[ \\] ").findAll(src).forEach { m ->
-        addStyle(SpanStyle(color = androidx.compose.ui.graphics.Color.Gray), m.range.first, m.range.last + 1)
-    }
-    Regex("\\*(.+?)\\*").findAll(src).forEach { m ->
-        if (!src.substring(maxOf(0, m.range.first - 1), m.range.first).contains("*"))
-            addStyle(SpanStyle(fontStyle = FontStyle.Italic), m.range.first, m.range.last + 1)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -65,8 +43,10 @@ fun NoteDetailScreen(
     vm: NoteDetailViewModel = koinViewModel(),
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
+    val appSettings by koinViewModel<AppSettingsViewModel>().settings.collectAsStateWithLifecycle()
     LaunchedEffect(noteId) { vm.load(noteId) }
     LaunchedEffect(s.saved) { if (s.saved) onBack() }
+    val mono = if (appSettings.monospaceFont) FontFamily.Monospace else null
 
     Scaffold(
         topBar = {
@@ -90,8 +70,15 @@ fun NoteDetailScreen(
                 label = { Text("Content (markdown)") }, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                 minLines = 8)
             Text("Preview", style = MaterialTheme.typography.labelLarge)
-            Text(markdownPreview(s.content.ifBlank { "_Nothing to preview_" }),
-                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
+            MarkdownText(
+                radius = appSettings.cornerRadius,
+                markdown = s.content.ifBlank { "_Nothing to preview_" },
+                isPreview = true,
+                isEnabled = appSettings.markdownEnabled,
+                fontSize = appSettings.fontSize.sp,
+                fontFamily = mono,
+                modifier = Modifier.fillMaxWidth(),
+            )
             OutlinedTextField(value = s.tagsCsv, onValueChange = { vm.edit(tags = it) },
                 label = { Text("Tags (comma-separated)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

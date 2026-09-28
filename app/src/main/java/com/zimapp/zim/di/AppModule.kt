@@ -2,10 +2,14 @@ package com.zimapp.zim.di
 
 import androidx.room.Room
 import com.zimapp.zim.data.local.AppDatabase
+import com.zimapp.zim.data.repository.AppSettingsRepositoryImpl
 import com.zimapp.zim.data.repository.NoteRepositoryImpl
+import com.zimapp.zim.domain.repository.AppSettingsRepository
 import com.zimapp.zim.domain.repository.NoteRepository
 import com.zimapp.zim.ui.note_detail.NoteDetailViewModel
 import com.zimapp.zim.ui.notes_list.NotesViewModel
+import com.zimapp.zim.ui.settings.AppSettingsViewModel
+import com.zimapp.zim.ui.settings.lock.LockViewModel
 import com.zimapp.zim.ui.settings.SyncSettingsViewModel
 import com.zimapp.zim.ui.settings.UpdateViewModel
 import com.zimapp.zim.ui.todo.TodoViewModel
@@ -20,7 +24,10 @@ val AppModule = module {
         Room.databaseBuilder(androidContext(), AppDatabase::class.java, "expressive-notes.db").build()
     }
     single { get<AppDatabase>().noteDao() }
+    single<AppSettingsRepository> { AppSettingsRepositoryImpl(androidContext()) }
     single<NoteRepository> { NoteRepositoryImpl(get(), get()) }
+    viewModelOf(::AppSettingsViewModel)
+    viewModelOf(::LockViewModel)
     viewModelOf(::NotesViewModel)
     viewModelOf(::NoteDetailViewModel)
     viewModelOf(::SyncSettingsViewModel)

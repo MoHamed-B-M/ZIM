@@ -101,6 +101,15 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.datastore.preferences)
 
+    // EasyNotes-ported features: locale picker, biometric lock, markdown images,
+    // seeded dynamic palettes, home-screen widgets
+    implementation(libs.appcompat)
+    implementation(libs.biometric.ktx)
+    implementation(libs.coil.compose)
+    implementation(libs.m3color)
+    implementation(libs.glance)
+    implementation(libs.glance.appwidget)
+
     testImplementation(libs.junit)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
