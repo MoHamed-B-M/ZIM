@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "ExpressiveNotes"
+rootProject.name = "ZIM"
 include(":app")

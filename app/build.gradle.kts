@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.expressivenotes"
+    namespace = "com.zimapp.zim"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.expressivenotes"
+        applicationId = "com.zimapp.zim"
         minSdk = 26 // Dynamic color needs 31+ at runtime; 26 keeps install base wide
         targetSdk = 36
         // 1.0.0 baseline; CI stamps workflow versions via APP_VERSION_* for the
