@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zimapp.zim.domain.model.Note
+import com.zimapp.zim.domain.model.NoteFormat
+import com.zimapp.zim.ui.note_edit.rich.HtmlCodec
 import com.zimapp.zim.ui.theme.cardContainerFor
 
 // Sub-millisecond FTS highlight: wraps raw query matches in primary-colored spans.
@@ -60,7 +62,10 @@ fun NoteCard(note: Note, query: String, onClick: () -> Unit, modifier: Modifier 
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = remember(note.content, query) { highlighted(note.content, query) },
+                text = remember(note.content, note.format, query) {
+                    val body = if (note.format == NoteFormat.RICH) HtmlCodec.htmlToPlain(note.content) else note.content
+                    highlighted(body, query)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 6, overflow = TextOverflow.Ellipsis,

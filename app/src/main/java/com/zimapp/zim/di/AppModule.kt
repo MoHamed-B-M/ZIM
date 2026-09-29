@@ -2,6 +2,7 @@ package com.zimapp.zim.di
 
 import androidx.room.Room
 import com.zimapp.zim.data.local.AppDatabase
+import com.zimapp.zim.data.local.MIGRATION_1_2
 import com.zimapp.zim.data.repository.AppSettingsRepositoryImpl
 import com.zimapp.zim.data.repository.NoteRepositoryImpl
 import com.zimapp.zim.domain.repository.AppSettingsRepository
@@ -21,7 +22,9 @@ import org.koin.dsl.module
 val AppModule = module {
     single { Json { ignoreUnknownKeys = true; prettyPrint = true } }
     single {
-        Room.databaseBuilder(androidContext(), AppDatabase::class.java, "expressive-notes.db").build()
+        Room.databaseBuilder(androidContext(), AppDatabase::class.java, "expressive-notes.db")
+            .addMigrations(MIGRATION_1_2)
+            .build()
     }
     single { get<AppDatabase>().noteDao() }
     single<AppSettingsRepository> { AppSettingsRepositoryImpl(androidContext()) }

@@ -4,6 +4,8 @@ import kotlinx.serialization.Serializable
 
 enum class SyncStatus { SYNCED, PENDING, CONFLICT }
 
+enum class NoteFormat { RICH, MARKDOWN }
+
 @Serializable
 data class Note(
     val id: String,
@@ -18,4 +20,6 @@ data class Note(
     val syncStatus: SyncStatus = SyncStatus.PENDING,
     val tags: List<String> = emptyList(),
     val colorToken: Int = 0, // 0 = default surface, 1..5 = expressive tonal seeds
+    // RICH = formatted HTML, MARKDOWN = raw markdown. New notes default RICH.
+    val format: NoteFormat = NoteFormat.RICH,
 )

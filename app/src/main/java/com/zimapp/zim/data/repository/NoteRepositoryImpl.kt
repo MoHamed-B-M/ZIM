@@ -2,6 +2,7 @@ package com.zimapp.zim.data.repository
 
 import com.zimapp.zim.data.local.NoteDao
 import com.zimapp.zim.data.local.NoteEntity
+import com.zimapp.zim.data.local.toNoteFormat
 import com.zimapp.zim.domain.model.Note
 import com.zimapp.zim.domain.model.SyncStatus
 import com.zimapp.zim.domain.repository.NoteRepository
@@ -20,7 +21,7 @@ private fun NoteEntity.toDomain() = Note(
     id = id, title = title, content = content, createdAt = createdAt, updatedAt = updatedAt,
     isPinned = isPinned, isArchived = isArchived, isDeleted = isDeleted, deletedAt = deletedAt,
     syncStatus = syncStatus, tags = tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
-    colorToken = colorToken,
+    colorToken = colorToken, format = format.toNoteFormat(),
 )
 
 private fun Note.toEntity() = NoteEntity(
@@ -29,6 +30,7 @@ private fun Note.toEntity() = NoteEntity(
     syncStatus = if (syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING else syncStatus,
     tagsCsv = tags.joinToString(","),
     colorToken = colorToken,
+    format = format.name,
 )
 
 // FTS MATCH escaping: quote + wildcard for prefix search.

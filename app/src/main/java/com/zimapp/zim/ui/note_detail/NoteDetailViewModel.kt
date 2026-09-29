@@ -3,8 +3,10 @@ package com.zimapp.zim.ui.note_detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zimapp.zim.domain.model.Note
+import com.zimapp.zim.domain.model.NoteFormat
 import com.zimapp.zim.domain.model.SyncStatus
 import com.zimapp.zim.domain.repository.NoteRepository
+import com.zimapp.zim.ui.note_edit.rich.HtmlCodec
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,7 @@ data class DetailUiState(
     val tagsCsv: String = "",
     val colorToken: Int = 0,
     val isPinned: Boolean = false,
+    val format: NoteFormat = NoteFormat.RICH,
     val loaded: Boolean = false,
     val saved: Boolean = false,
 )
@@ -34,7 +37,7 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
                 _state.update {
                     it.copy(id = n.id, title = n.title, content = n.content,
                         tagsCsv = n.tags.joinToString(", "), colorToken = n.colorToken,
-                        isPinned = n.isPinned, loaded = true)
+                        isPinned = n.isPinned, format = n.format, loaded = true)
                 }
             } ?: _state.update { it.copy(loaded = true) }
         }
@@ -49,10 +52,16 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
         }
     }
 
-    fun save(isChecklist: Boolean = false) = viewModelScope.launch {
+    fun setFormat(format: NoteFormat) {
+        _state.update { it.copy(format = format, saved = false) }
+    }
+
+    fun save(isChecklist: Boolean = false, richHtml: String? = null) = viewModelScope.launch {
         val s = _state.value
         val now = System.currentTimeMillis()
-        val body = if (isChecklist && s.content.isBlank()) "- [ ] " else s.content
+        val rawBody = richHtml ?: s.content
+        val plainCheck = richHtml?.let { HtmlCodec.htmlToPlain(it) } ?: s.content
+        val body = if (isChecklist && plainCheck.isBlank()) "- [ ] " else rawBody
         val existing = repo.getById(s.id)
         repo.upsert(
             Note(id = s.id, title = s.title, content = body,
@@ -60,7 +69,7 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
                 isPinned = s.isPinned, isArchived = existing?.isArchived == true,
                 syncStatus = SyncStatus.PENDING,
                 tags = s.tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
-                colorToken = s.colorToken)
+                colorToken = s.colorToken, format = s.format)
         )
         _state.update { it.copy(saved = true) }
     }

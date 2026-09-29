@@ -3,7 +3,9 @@ package com.zimapp.zim.ui.todo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zimapp.zim.domain.model.Note
+import com.zimapp.zim.domain.model.NoteFormat
 import com.zimapp.zim.domain.repository.NoteRepository
+import com.zimapp.zim.ui.note_edit.rich.HtmlCodec
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -19,9 +21,10 @@ class TodoViewModel(private val repo: NoteRepository) : ViewModel() {
     val state: StateFlow<List<TodoNote>> = repo.observeNotes(includeArchived = false)
         .map { notes ->
             notes.mapNotNull { n ->
-                val tasks = n.content.lines().mapIndexedNotNull { i, line ->
+                val src = if (n.format == NoteFormat.RICH) HtmlCodec.htmlToPlain(n.content) else n.content
+                val tasks = src.lines().mapIndexedNotNull { i, line ->
                     TASK_LINE.matchEntire(line.trim())?.let { m ->
-                        TaskLine(i, m.groupValues[2], m.groupValues[1].lowercase() == "x")
+                        TaskLine(i, HtmlCodec.htmlToPlain(m.groupValues[2]), m.groupValues[1].lowercase() == "x")
                     }
                 }
                 if (tasks.isEmpty()) null else TodoNote(n, tasks)
