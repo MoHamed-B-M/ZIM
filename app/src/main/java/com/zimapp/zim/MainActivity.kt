@@ -253,6 +253,14 @@ class MainActivity : AppCompatActivity() {
                                 else -> null
                             },
                             fabExpanded = notesMenuOpen,
+                            onPickNote = {
+                                notesMenuOpen = false
+                                nav.navigate(Route.Detail(null, false))
+                            },
+                            onPickChecklist = {
+                                notesMenuOpen = false
+                                nav.navigate(Route.Detail(null, true))
+                            },
                         )
                     }
                 }

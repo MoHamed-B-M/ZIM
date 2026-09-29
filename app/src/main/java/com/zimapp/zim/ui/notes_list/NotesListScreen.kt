@@ -14,17 +14,13 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
-import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -90,8 +86,7 @@ fun NotesListScreen(
 
     BackHandler(menuOpen) { onMenuOpenChange(false) }
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+    Scaffold(        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             AppBarWithSearch(
@@ -111,25 +106,6 @@ fun NotesListScreen(
                 },
             )
             ExpandedFullScreenContainedSearchBar(state = searchState, inputField = inputField) { }
-        },
-        floatingActionButton = {
-            // Overlay slot gives the menu proper constraints (inline in the
-            // dock row the items collapsed to per-character width).
-            FloatingActionButtonMenu(
-                expanded = menuOpen,
-                button = { },
-            ) {
-                FloatingActionButtonMenuItem(
-                    onClick = { onMenuOpenChange(false); onNewNote(false) },
-                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    text = { Text("Note") },
-                )
-                FloatingActionButtonMenuItem(
-                    onClick = { onMenuOpenChange(false); onNewNote(true) },
-                    icon = { Icon(Icons.Filled.Checklist, contentDescription = null) },
-                    text = { Text("Checklist") },
-                )
-            }
         },
     ) { padding ->
         if (state.isLoading) {
