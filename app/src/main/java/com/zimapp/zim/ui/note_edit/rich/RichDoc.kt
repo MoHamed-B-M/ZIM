@@ -1,7 +1,9 @@
+@file:OptIn(ExperimentalTextApi::class)
 package com.zimapp.zim.ui.note_edit.rich
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
@@ -36,10 +38,11 @@ private fun AnnotatedString.hasAll(range: IntRange, test: (SpanStyle) -> Boolean
     return true
 }
 
-private fun AnnotatedString.without(range: IntRange, test: (SpanStyle) -> Boolean): AnnotatedString =
-    buildAnnotatedString {
-        append(this@withoutout.text)
-        this@withoutout.spanStyles.forEach { span ->
+private fun AnnotatedString.without(range: IntRange, test: (SpanStyle) -> Boolean): AnnotatedString {
+    val src = this
+    return buildAnnotatedString {
+        append(src.text)
+        src.spanStyles.forEach { span ->
             if (!test(span.item) || span.end <= range.first || span.start >= range.last) {
                 addStyle(span.item, span.start, span.end)
             } else {
@@ -47,14 +50,24 @@ private fun AnnotatedString.without(range: IntRange, test: (SpanStyle) -> Boolea
                 if (span.end > range.last) addStyle(span.item, range.last, span.end)
             }
         }
-        this@withoutout.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
-        this@withoutout.getStringAnnotations(0, text.length).forEach { a ->
+        src.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+        src.getStringAnnotations(0, src.text.length).forEach { a ->
             addStringAnnotation(a.tag, a.item, a.start, a.end)
         }
-        this@withoutout.getUrlAnnotations(0, text.length).forEach { a ->
-            addLink(a.item, a.start, a.end)
+        src.getUrlAnnotations(0, src.text.length).forEach { a ->
+            (a.item as? LinkAnnotation.Url)?.let { addLink(it, a.start, a.end) }
         }
     }
+}
+
+private fun AnnotatedString.Builder.copyAnnotationsFrom(src: AnnotatedString) {
+    src.getStringAnnotations(0, src.text.length).forEach { a ->
+        addStringAnnotation(a.tag, a.item, a.start, a.end)
+    }
+    src.getUrlAnnotations(0, src.text.length).forEach { a ->
+        (a.item as? LinkAnnotation.Url)?.let { addLink(it, a.start, a.end) }
+    }
+}
 
 private fun TextFieldValue.toggleSpan(add: SpanStyle, test: (SpanStyle) -> Boolean): TextFieldValue {
     val range = rangeOrWord().let { it.first.coerceAtLeast(0)..it.last.coerceAtMost(text.length) }
@@ -66,12 +79,7 @@ private fun TextFieldValue.toggleSpan(add: SpanStyle, test: (SpanStyle) -> Boole
             append(annotatedString.text)
             annotatedString.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
             annotatedString.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
-            annotatedString.getStringAnnotations(0, annotatedString.text.length).forEach { a ->
-                addStringAnnotation(a.tag, a.item, a.start, a.end)
-            }
-            annotatedString.getUrlAnnotations(0, annotatedString.text.length).forEach { a ->
-                addLink(a.item, a.start, a.end)
-            }
+            copyAnnotationsFrom(annotatedString)
             addStyle(add, range.first, range.last)
         }
     }
@@ -112,6 +120,7 @@ fun TextFieldValue.adjustSize(delta: Int): TextFieldValue {
             append(stripped.text)
             stripped.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
             stripped.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+            copyAnnotationsFrom(stripped)
             addStyle(SpanStyle(fontSize = size.sp), range.first, range.last)
         },
     )
@@ -127,6 +136,7 @@ fun TextFieldValue.setFontFamily(family: FontFamily?): TextFieldValue {
             append(stripped.text)
             stripped.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
             stripped.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+            copyAnnotationsFrom(stripped)
             addStyle(SpanStyle(fontFamily = family), range.first, range.last)
         },
     )
@@ -142,6 +152,7 @@ fun TextFieldValue.setTextColor(color: Color?): TextFieldValue {
             append(stripped.text)
             stripped.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
             stripped.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+            copyAnnotationsFrom(stripped)
             addStyle(SpanStyle(color = color), range.first, range.last)
         },
     )
@@ -157,6 +168,7 @@ fun TextFieldValue.setHighlight(color: Color?): TextFieldValue {
             append(stripped.text)
             stripped.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
             stripped.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+            copyAnnotationsFrom(stripped)
             addStyle(SpanStyle(background = color), range.first, range.last)
         },
     )
@@ -175,6 +187,7 @@ fun TextFieldValue.setAlignment(align: TextAlign): TextFieldValue {
             annotatedString.paragraphStyles.forEach {
                 if (it.end <= lineStart || it.start >= lineEnd) addStyle(it.item, it.start, it.end)
             }
+            copyAnnotationsFrom(annotatedString)
             addStyle(ParagraphStyle(textAlign = align), lineStart, lineEnd)
         },
         selection = selection,

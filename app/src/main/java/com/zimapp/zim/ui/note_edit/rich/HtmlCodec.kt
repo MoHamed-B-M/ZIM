@@ -1,5 +1,7 @@
 package com.zimapp.zim.ui.note_edit.rich
 
+import androidx.compose.ui.text.ExperimentalTextApi
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.sp
 
 // Minimal HTML subset for rich notes. Plain lines (incl. "- [ ]" checklist and
 // "![](...)" image lines) pass through verbatim so list screens keep working.
+@OptIn(ExperimentalTextApi::class)
 object HtmlCodec {
     private val ImgLine = Regex("""^!\(.+\)$""")
 
@@ -46,9 +49,16 @@ object HtmlCodec {
                 // Paragraph alignment for the line.
                 val align = doc.paragraphStyles
                     .firstOrNull { it.start < end && it.end > start }
-                    ?.item?.textAlign
-                if (align != null && align != TextAlign.Unspecified) {
-                    out.append("<p align=\"${align.name.lowercase()}\">")
+                    ?.item?.textAlign ?: TextAlign.Unspecified
+                val alignName = when (align) {
+                    TextAlign.Center -> "center"
+                    TextAlign.End -> "end"
+                    TextAlign.Justify -> "justify"
+                    TextAlign.Left, TextAlign.Start -> "left"
+                    else -> null
+                }
+                if (alignName != null) {
+                    out.append("<p align=\"$alignName\">")
                 }
                 for (i in 0 until pts.size - 1) {
                     val s = pts[i]
@@ -61,7 +71,7 @@ object HtmlCodec {
                     links.forEach { chunk = "<a href=\"${esc(it.item)}\">$chunk</a>" }
                     out.append(chunk)
                 }
-                if (align != null && align != TextAlign.Unspecified) out.append("</p>")
+                if (alignName != null) out.append("</p>")
             }
             if (li + 1 < lineStarts.size) out.append("\n")
         }
