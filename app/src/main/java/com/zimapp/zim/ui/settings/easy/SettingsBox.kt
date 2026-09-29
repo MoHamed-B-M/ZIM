@@ -32,6 +32,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,13 +74,21 @@ fun SettingsBox(
     switchEnabled: (Boolean) -> Unit = {},
     linkClicked: () -> Unit = {},
     customButton: @Composable () -> Unit = { RenderCustomIcon() },
-    customAction: @Composable (() -> Unit) -> Unit = {},
+    // One-shot action (e.g. open a dialog managed by the caller). Previously
+    // this took an onExit callback and the trigger flag was never consumed,
+    // so every recomposition re-fired the action (double dialogs).
+    customAction: () -> Unit = {},
     customText: String = "",
     clipboardText: String = "",
 ) {
     val context = LocalContext.current
     var showCustomAction by remember { mutableStateOf(false) }
-    if (showCustomAction) customAction { showCustomAction = !showCustomAction }
+    if (showCustomAction) {
+        LaunchedEffect(Unit) {
+            customAction()
+            showCustomAction = false
+        }
+    }
 
     AnimatedVisibility(visible = isEnabled) {
         Box(

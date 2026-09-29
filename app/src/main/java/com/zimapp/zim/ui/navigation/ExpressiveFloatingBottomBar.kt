@@ -70,7 +70,9 @@ fun ExpressiveFloatingBottomBar(
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 8.dp,
+        // Tonal elevation (the M3 Expressive depth cue) instead of a real
+        // shadow, which rendered as a boxy halo around the pill during morphs.
+        tonalElevation = 3.dp,
         modifier = modifier.animateContentSize(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioLowBouncy,
