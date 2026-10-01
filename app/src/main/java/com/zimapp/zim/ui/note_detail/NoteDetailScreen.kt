@@ -98,9 +98,6 @@ fun NoteDetailScreen(
 
     val mono = if (appSettings.monospaceFont) FontFamily.Monospace else null
     val rich = s.format == NoteFormat.RICH
-    fun richHtmlNow() = HtmlCodec.toHtml(field.annotatedString)
-    fun saveRich() = vm.save(isChecklist, richHtmlNow())
-    fun saveQuietly() = vm.saveQuietly(if (rich) richHtmlNow() else null)
 
     // Hoisted rich field: initialized from stored HTML once content loads.
     // Keyed on format too, so toggling modes never shows stale content.
@@ -108,6 +105,10 @@ fun NoteDetailScreen(
         HtmlCodec.fromHtml(s.content.ifBlank { if (isChecklist) "- [ ] " else "" })
     }
     var field by remember(initialDoc) { mutableStateOf(TextFieldValue(initialDoc)) }
+
+    fun richHtmlNow() = HtmlCodec.toHtml(field.annotatedString)
+    fun saveRich() = vm.save(isChecklist, richHtmlNow())
+    fun saveQuietly() = vm.saveQuietly(if (rich) richHtmlNow() else null)
     var toolsOpen by rememberSaveable { mutableStateOf(true) }
     var linkDialog by remember { mutableStateOf(false) }
     var tagsDialog by remember { mutableStateOf(false) }
