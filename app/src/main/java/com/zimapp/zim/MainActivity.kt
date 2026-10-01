@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity() {
                                 noteId = args.id,
                                 isChecklist = args.isChecklist,
                                 onBack = { nav.popBackStack() },
+                                onOpenTheme = { nav.navigate(Route.Colors) },
                             )
                         }
                         composable<Route.Settings> {

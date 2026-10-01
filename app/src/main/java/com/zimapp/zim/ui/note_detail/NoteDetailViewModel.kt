@@ -21,9 +21,11 @@ data class DetailUiState(
     val tagsCsv: String = "",
     val colorToken: Int = 0,
     val isPinned: Boolean = false,
+    val isArchived: Boolean = false,
     val format: NoteFormat = NoteFormat.RICH,
     val loaded: Boolean = false,
     val saved: Boolean = false,
+    val deleted: Boolean = false,
 )
 
 class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
@@ -37,7 +39,8 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
                 _state.update {
                     it.copy(id = n.id, title = n.title, content = n.content,
                         tagsCsv = n.tags.joinToString(", "), colorToken = n.colorToken,
-                        isPinned = n.isPinned, format = n.format, loaded = true)
+                        isPinned = n.isPinned, isArchived = n.isArchived,
+                        format = n.format, loaded = true)
                 }
             } ?: _state.update { it.copy(loaded = true) }
         }
@@ -56,6 +59,14 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
         _state.update { it.copy(format = format, saved = false) }
     }
 
+    fun togglePin() {
+        _state.update { it.copy(isPinned = !it.isPinned, saved = false) }
+    }
+
+    fun toggleArchive() {
+        _state.update { it.copy(isArchived = !it.isArchived, saved = false) }
+    }
+
     fun save(isChecklist: Boolean = false, richHtml: String? = null) = viewModelScope.launch {
         val s = _state.value
         val now = System.currentTimeMillis()
@@ -66,11 +77,47 @@ class NoteDetailViewModel(private val repo: NoteRepository) : ViewModel() {
         repo.upsert(
             Note(id = s.id, title = s.title, content = body,
                 createdAt = existing?.createdAt ?: now, updatedAt = now,
-                isPinned = s.isPinned, isArchived = existing?.isArchived == true,
+                isPinned = s.isPinned, isArchived = s.isArchived,
                 syncStatus = SyncStatus.PENDING,
                 tags = s.tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
                 colorToken = s.colorToken, format = s.format)
         )
         _state.update { it.copy(saved = true) }
+    }
+
+    // Persists without navigating away (pin action).
+    fun saveQuietly(richHtml: String? = null) = viewModelScope.launch {
+        val s = _state.value
+        val now = System.currentTimeMillis()
+        val existing = repo.getById(s.id)
+        repo.upsert(
+            Note(id = s.id, title = s.title, content = richHtml ?: s.content,
+                createdAt = existing?.createdAt ?: now, updatedAt = now,
+                isPinned = s.isPinned, isArchived = s.isArchived,
+                syncStatus = SyncStatus.PENDING,
+                tags = s.tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+                colorToken = s.colorToken, format = s.format)
+        )
+    }
+
+    // Duplicates the current note under a new id (overflow → Make a copy).
+    fun duplicate(richHtml: String? = null) = viewModelScope.launch {
+        val s = _state.value
+        val now = System.currentTimeMillis()
+        repo.upsert(
+            Note(id = UUID.randomUUID().toString(), title = s.title + " (copy)",
+                content = richHtml ?: s.content,
+                createdAt = now, updatedAt = now,
+                isPinned = false, isArchived = false,
+                syncStatus = SyncStatus.PENDING,
+                tags = s.tagsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+                colorToken = s.colorToken, format = s.format)
+        )
+    }
+
+    // Soft-deletes the current note; the screen pops on `deleted`.
+    fun trashCurrent() = viewModelScope.launch {
+        repo.moveToTrash(_state.value.id)
+        _state.update { it.copy(deleted = true) }
     }
 }

@@ -260,3 +260,35 @@ fun TextFieldValue.insertImageBlock(path: String): TextFieldValue {
         selection = TextRange(at + block.length),
     )
 }
+
+// Keep the active style going when the user types past a styled run (notably
+// across Enter): spans covering the anchor char extend over freshly inserted
+// text that has no styling of its own. Without this, toggling bold and then
+// pressing Enter silently drops the style on the new line.
+fun TextFieldValue.continueStyleOnEdit(prev: TextFieldValue): TextFieldValue {
+    if (text.length <= prev.text.length) return this
+    var d = 0
+    while (d < prev.text.length && d < text.length && prev.text[d] == text[d]) d++
+    var eOld = prev.text.length
+    var eNew = text.length
+    while (eOld > d && eNew > d && prev.text[eOld - 1] == text[eNew - 1]) {
+        eOld--
+        eNew--
+    }
+    if (d >= eNew) return this
+    if ('\n' !in text.substring(d, eNew)) return this
+    // Pasted text brings its own spans — don't paint over those.
+    if (annotatedString.spanStyles.any { it.start < eNew && it.end > d }) return this
+    val anchor = (d - 1).coerceAtLeast(0)
+    val covering = prev.annotatedString.spanStyles.filter { it.start <= anchor && it.end > anchor }
+    if (covering.isEmpty()) return this
+    return copy(
+        annotatedString = buildAnnotatedString {
+            append(text)
+            annotatedString.spanStyles.forEach { addStyle(it.item, it.start, it.end) }
+            annotatedString.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
+            copyAnnotationsFrom(annotatedString)
+            covering.forEach { addStyle(it.item, d, eNew) }
+        },
+    )
+}
