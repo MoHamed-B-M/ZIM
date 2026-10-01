@@ -1,20 +1,24 @@
 package com.zimapp.zim.ui.note_detail
 
+import android.webkit.MimeTypeMap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,22 +32,35 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zimapp.zim.domain.model.NoteFormat
 import com.zimapp.zim.ui.markdown.MarkdownText
+import com.zimapp.zim.ui.note_edit.rich.FormatFloatingToolbar
 import com.zimapp.zim.ui.note_edit.rich.HtmlCodec
-import com.zimapp.zim.ui.note_edit.rich.RichTextEditor
+import com.zimapp.zim.ui.note_edit.rich.RichEditorField
+import com.zimapp.zim.ui.note_edit.rich.UrlDialog
+import com.zimapp.zim.ui.note_edit.rich.insertImageBlock
+import com.zimapp.zim.ui.note_edit.rich.insertLink
+import com.zimapp.zim.ui.note_edit.rich.nextFont
+import com.zimapp.zim.ui.note_edit.rich.setFontFamily
 import com.zimapp.zim.ui.settings.AppSettingsViewModel
+import java.io.File
+import java.util.UUID
 import org.koin.androidx.compose.koinViewModel
 
-// Editor with two modes: RICH (formatted text + tools) and MARKDOWN (plain
-// text + rendered preview). Existing notes open in their stored format.
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+// Editor with two modes: RICH (formatted text + floating format toolbar) and
+// MARKDOWN (plain text + rendered preview, optional). New notes default RICH.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteDetailScreen(
     noteId: String?,
@@ -53,17 +70,49 @@ fun NoteDetailScreen(
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
     val appSettings by koinViewModel<AppSettingsViewModel>().settings.collectAsStateWithLifecycle()
-    var draftHtml by remember { mutableStateOf<String?>(null) }
+    val ctx = LocalContext.current
 
     LaunchedEffect(noteId) { vm.load(noteId) }
     LaunchedEffect(s.saved) { if (s.saved) onBack() }
-    // Seed the rich draft once content loads (null = untouched).
-    LaunchedEffect(s.loaded, s.id) {
-        if (s.loaded) draftHtml = null
-    }
 
     val mono = if (appSettings.monospaceFont) FontFamily.Monospace else null
     val rich = s.format == NoteFormat.RICH
+
+    // Hoisted rich field: initialized from stored HTML once content loads.
+    val initialDoc = remember(s.loaded, s.id) {
+        HtmlCodec.fromHtml(s.content.ifBlank { if (isChecklist) "- [ ] " else "" })
+    }
+    var field by remember(initialDoc) { mutableStateOf(TextFieldValue(initialDoc)) }
+    var toolsOpen by rememberSaveable { mutableStateOf(true) }
+    var linkDialog by remember { mutableStateOf(false) }
+    var fontFamily by remember { mutableStateOf<FontFamily?>(null) }
+    var fontLabel by remember { mutableStateOf("Sans") }
+
+    fun saveRich() = vm.save(isChecklist, HtmlCodec.toHtml(field.annotatedString))
+
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            val mime = ctx.contentResolver.getType(uri) ?: "image/jpeg"
+            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
+            val dir = File(ctx.filesDir, "images").apply { mkdirs() }
+            val dest = File(dir, "${UUID.randomUUID()}.$ext")
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                dest.outputStream().use { input.copyTo(it) }
+            }
+            field = field.insertImageBlock(dest.absolutePath)
+        }
+    }
+
+    if (linkDialog) {
+        UrlDialog(
+            onDismiss = { linkDialog = false },
+            onConfirm = { url ->
+                field = field.insertLink(url)
+                linkDialog = false
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -74,45 +123,31 @@ fun NoteDetailScreen(
                     TextButton(
                         onClick = {
                             if (rich) {
-                                // RICH → Markdown: keep readable text, drop styling.
-                                val plain = draftHtml?.let { HtmlCodec.htmlToPlain(it) } ?: s.content
-                                vm.edit(content = plain)
+                                vm.edit(content = HtmlCodec.htmlToPlain(HtmlCodec.toHtml(field.annotatedString)))
                                 vm.setFormat(NoteFormat.MARKDOWN)
                             } else {
                                 vm.setFormat(NoteFormat.RICH)
-                                draftHtml = null
                             }
                         },
                     ) {
                         Text(if (rich) "Markdown" else "Rich")
                     }
-                    IconButton(onClick = { vm.edit(color = (s.colorToken + 1) % 6) }) {
-                        Icon(Icons.Filled.PushPin, contentDescription = "Cycle color")
-                    }
-                    IconButton(onClick = { vm.save(isChecklist, draftHtml.takeIf { rich }) }) {
+                    IconButton(onClick = { if (rich) saveRich() else vm.save(isChecklist) }) {
                         Icon(Icons.Filled.Check, "Save")
                     }
                 },
             )
         },
     ) { p ->
-        Column(
-            Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedTextField(
-                value = s.title, onValueChange = { vm.edit(title = it) },
-                label = { Text("Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-            )
-            if (rich) {
-                RichTextEditor(
-                    initial = remember(s.loaded, s.id) {
-                        HtmlCodec.fromHtml(s.content.ifBlank { if (isChecklist) "- [ ] " else "" })
-                    },
-                    onHtmlChange = { draftHtml = it },
-                    modifier = Modifier.fillMaxWidth(),
+        if (!rich) {
+            Column(
+                Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = s.title, onValueChange = { vm.edit(title = it) },
+                    label = { Text("Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 )
-            } else {
                 OutlinedTextField(
                     value = s.content, onValueChange = { vm.edit(content = it) },
                     label = { Text("Content (markdown)") },
@@ -129,19 +164,51 @@ fun NoteDetailScreen(
                     fontFamily = mono,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedTextField(
+                    value = s.tagsCsv, onValueChange = { vm.edit(tags = it) },
+                    label = { Text("Tags (comma-separated)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                )
             }
-            OutlinedTextField(
-                value = s.tagsCsv, onValueChange = { vm.edit(tags = it) },
-                label = { Text("Tags (comma-separated)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+            return@Scaffold
+        }
+
+        Box(Modifier.fillMaxSize().padding(p)) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = s.title, onValueChange = { vm.edit(title = it) },
+                    label = { Text("Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                )
+                RichEditorField(
+                    value = field,
+                    onValueChange = { field = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = s.tagsCsv, onValueChange = { vm.edit(tags = it) },
+                    label = { Text("Tags (comma-separated)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                )
+                Spacer(Modifier.height(96.dp))
+            }
+            FormatFloatingToolbar(
+                expanded = toolsOpen,
+                onToggleExpand = { toolsOpen = !toolsOpen },
+                field = field,
+                onUpdate = { field = it },
+                fontLabel = fontLabel,
+                onFontCycle = {
+                    val (next, label) = nextFont(fontFamily)
+                    fontFamily = next
+                    fontLabel = label
+                    field = field.setFontFamily(next)
+                },
+                onLinkClick = { linkDialog = true },
+                onImageClick = { imagePicker.launch(arrayOf("image/*")) },
+                onSave = ::saveRich,
+                modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (0..5).forEach { token ->
-                    FilterChip(
-                        selected = s.colorToken == token, onClick = { vm.edit(color = token) },
-                        label = { Text(if (token == 0) "Default" else "Tone $token") },
-                    )
-                }
-            }
         }
     }
 }
