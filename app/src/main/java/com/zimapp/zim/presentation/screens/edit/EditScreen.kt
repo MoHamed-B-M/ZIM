@@ -361,11 +361,12 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
     // Cross-app drag & drop (floating windows, split-screen): while the body
     // field is focused, dropped images/files land in app storage and are
     // inserted at the end of the note. System grants read access on drop.
+    // NOTE: "*/*" is rejected by setOnReceiveContentListener — list types.
     DisposableEffect(view, viewModel.isDescriptionInFocus.value) {
         if (viewModel.isDescriptionInFocus.value) {
             ViewCompat.setOnReceiveContentListener(
                 view,
-                arrayOf("*/*"),
+                arrayOf("image/*", "video/*", "audio/*", "text/*", "application/*"),
             ) { _, payload ->
                 // Only files/images are intercepted (copied + referenced);
                 // plain text flows through the normal paste/drop path untouched.
