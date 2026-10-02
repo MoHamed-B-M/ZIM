@@ -1,15 +1,14 @@
 package com.zimapp.zim.presentation.screens.edit
 
 import android.icu.text.SimpleDateFormat
+import android.content.ClipData
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.draganddrop.DragAndDropEvent
-import androidx.compose.foundation.draganddrop.DragAndDropTarget
-import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,11 +46,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.ContentInfoCompat
+import androidx.core.view.ViewCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -61,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -318,67 +317,66 @@ fun MinimalisticMode(
 
 
 
+private fun attachDroppedClip(
+    context: Context,
+    viewModel: EditViewModel,
+    clip: ClipData,
+) {
+    val resolver = context.contentResolver
+    val cur = viewModel.noteDescription.value
+    val sb = StringBuilder(cur.text)
+    if (sb.isNotEmpty() && !sb.endsWith("\n")) sb.append('\n')
+    for (i in 0 until clip.itemCount) {
+        val item = clip.getItemAt(i)
+        val uri: Uri? = item.uri
+        if (uri == null) {
+            item.coerceToText(context)?.let { if (it.isNotBlank()) sb.append(it).append('\n') }
+            continue
+        }
+        runCatching {
+            val mime = resolver.getType(uri) ?: "application/octet-stream"
+            val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            } ?: "file"
+            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+                ?: name.substringAfterLast('.', "")
+            val dir = File(context.filesDir, if (mime.startsWith("image/")) "images" else "files").apply { mkdirs() }
+            val dest = File(dir, "${UUID.randomUUID()}.$ext")
+            resolver.openInputStream(uri)?.use { input ->
+                dest.outputStream().use { input.copyTo(it) }
+            }
+            if (mime.startsWith("image/")) sb.append("!(${dest.absolutePath})\n")
+            else sb.append("[$name](${dest.absolutePath})\n")
+        }
+    }
+    viewModel.updateNoteDescription(cur.copy(text = sb.toString()))
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pagerState: PagerState,onClickBack: () -> Unit) {
     val context = LocalContext.current
-    var dropActive by remember { mutableStateOf(false) }
+    val view = LocalView.current
 
-    fun hasDroppable(event: DragAndDropEvent): Boolean {
-        val clip = event.clipData ?: return false
-        return (0 until clip.itemCount).any { i ->
-            clip.getItemAt(i).uri != null || clip.getItemAt(i).text != null
-        }
-    }
-
-    fun attachDropped(event: DragAndDropEvent) {
-        val clip = event.clipData ?: return
-        val resolver = context.contentResolver
-        val cur = viewModel.noteDescription.value
-        val sb = StringBuilder(cur.text)
-        if (sb.isNotEmpty() && !sb.endsWith("\n")) sb.append('\n')
-        for (i in 0 until clip.itemCount) {
-            val item = clip.getItemAt(i)
-            val uri: Uri? = item.uri
-            if (uri == null) {
-                item.text?.let { if (it.isNotBlank()) sb.append(it).append('\n') }
-                continue
-            }
-            runCatching {
-                val mime = resolver.getType(uri) ?: "application/octet-stream"
-                val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                    if (c.moveToFirst()) c.getString(0) else null
-                } ?: "file"
-                val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
-                    ?: name.substringAfterLast('.', "")
-                val dir = File(context.filesDir, if (mime.startsWith("image/")) "images" else "files").apply { mkdirs() }
-                val dest = File(dir, "${UUID.randomUUID()}.$ext")
-                resolver.openInputStream(uri)?.use { input ->
-                    dest.outputStream().use { input.copyTo(it) }
+    // Cross-app drag & drop (floating windows, split-screen): while the body
+    // field is focused, dropped images/files land in app storage and are
+    // inserted at the end of the note. System grants read access on drop.
+    DisposableEffect(view, viewModel.isDescriptionInFocus.value) {
+        if (viewModel.isDescriptionInFocus.value) {
+            ViewCompat.setOnReceiveContentListener(
+                view,
+                arrayOf("*/*"),
+            ) { _, payload ->
+                if (payload.source != ViewCompat.RECEIVE_CONTENT_SOURCE_DRAG_AND_DROP) {
+                    payload
+                } else {
+                    attachDroppedClip(context, viewModel, payload.clip) 
+                    null
                 }
-                if (mime.startsWith("image/")) sb.append("!(${dest.absolutePath})\n")
-                else sb.append("[$name](${dest.absolutePath})\n")
             }
         }
-        viewModel.updateNoteDescription(cur.copy(text = sb.toString()))
-    }
-
-    val dropTarget = remember {
-        object : DragAndDropTarget {
-            override fun onStarted(event: DragAndDropEvent) {
-                dropActive = true
-            }
-
-            override fun onEnded(event: DragAndDropEvent) {
-                dropActive = false
-            }
-
-            override fun onDrop(event: DragAndDropEvent): Boolean {
-                dropActive = false
-                if (!hasDroppable(event)) return false
-                attachDropped(event)
-                return true
-            }
+        onDispose {
+            ViewCompat.setOnReceiveContentListener(view, null)
         }
     }
 
@@ -415,41 +413,15 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
             shape = shapeManager(radius = settingsViewModel.settings.value.cornerRadius, isLast = true),
             modifier = Modifier
                 .weight(1f)
-                .onFocusChanged { viewModel.toggleIsDescriptionInFocus(it.isFocused) }
-                .dragAndDropTarget(
-                    shouldStartDragAndDrop = ::hasDroppable,
-                    target = dropTarget,
-                ),
+                .onFocusChanged { viewModel.toggleIsDescriptionInFocus(it.isFocused) },
             content = {
-                Box(Modifier.fillMaxSize()) {
-                    CustomTextField(
-                        value = viewModel.noteDescription.value,
-                        onValueChange = { viewModel.updateNoteDescription(it) },
-                        modifier = Modifier.fillMaxSize(),
-                        placeholder = stringResource(R.string.description),
-                        useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
-                    )
-                    if (dropActive) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.drop_to_attach),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        RoundedCornerShape(50),
-                                    )
-                                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                            )
-                        }
-                    }
-                }
+                CustomTextField(
+                    value = viewModel.noteDescription.value,
+                    onValueChange = { viewModel.updateNoteDescription(it) },
+                    modifier = Modifier.fillMaxSize(),
+                    placeholder = stringResource(R.string.description),
+                    useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
+                )
             }
         )
         if (viewModel.isDescriptionInFocus.value && settingsViewModel.settings.value.isMarkdownEnabled) TextFormattingToolbar(viewModel)
