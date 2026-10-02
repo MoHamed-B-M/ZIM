@@ -1,8 +1,10 @@
 package com.zimapp.zim.presentation.screens.settings.settings
 
 import android.content.Context
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ContactSupport
@@ -26,6 +28,7 @@ import com.zimapp.zim.core.constant.SupportConst
 import com.zimapp.zim.core.constant.SupportConst.getSupportersMap
 import com.zimapp.zim.presentation.screens.settings.SettingsScaffold
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
+import com.zimapp.zim.presentation.screens.settings.update.AppUpdateSection
 import com.zimapp.zim.presentation.screens.settings.widgets.ActionType
 import com.zimapp.zim.presentation.screens.settings.widgets.ListDialog
 import com.zimapp.zim.presentation.screens.settings.widgets.SettingsBox
@@ -41,6 +44,13 @@ fun AboutScreen(navController: NavController, settingsViewModel: SettingsViewMod
         onBackNavClicked = { navController.navigateUp() }
     ) {
         LazyColumn {
+            item {
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier.padding(bottom = 18.dp),
+                ) {
+                    AppUpdateSection()
+                }
+            }
             item {
                 SettingsBox(
                     settingsViewModel = settingsViewModel,

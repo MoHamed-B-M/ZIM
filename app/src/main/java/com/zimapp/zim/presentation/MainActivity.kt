@@ -13,22 +13,10 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.zimapp.zim.presentation.components.navigation.ExpressiveFloatingBottomBar
-import com.zimapp.zim.presentation.components.navigation.TAB_NOTES
-import com.zimapp.zim.presentation.components.navigation.TAB_SETTINGS
-import com.zimapp.zim.presentation.navigation.AppNavHost
 import com.zimapp.zim.presentation.components.applyAppIcon
 import com.zimapp.zim.presentation.components.currentAppIcon
+import com.zimapp.zim.presentation.navigation.AppNavHost
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,40 +65,7 @@ class MainActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     navController = rememberNavController()
-                    val entry by navController.currentBackStackEntryAsState()
-                    val route = entry?.destination?.route
-                    // Single-destination tabs: home + settings hub. Everything
-                    // else (edit, lock, sub-screens) is full-screen, no bar.
-                    val tab = when {
-                        route == NavRoutes.Home.route -> TAB_NOTES
-                        route == NavRoutes.Settings.route ||
-                            (route?.startsWith("settings/") == true) -> TAB_SETTINGS
-                        else -> null
-                    }
-                    Box(Modifier.fillMaxSize()) {
-                        AppNavHost(settingsViewModel!!, navController, noteId, settingsViewModel!!.defaultRoute!!)
-                        if (tab != null) {
-                            ExpressiveFloatingBottomBar(
-                                currentRoute = tab,
-                                onNavigate = { selected ->
-                                    val dest = if (selected == TAB_NOTES) {
-                                        NavRoutes.Home.route
-                                    } else {
-                                        NavRoutes.Settings.route
-                                    }
-                                    navController.navigate(dest) {
-                                        popUpTo(NavRoutes.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .navigationBarsPadding()
-                                    .padding(bottom = 12.dp),
-                            )
-                        }
-                    }
+                    AppNavHost(settingsViewModel!!, navController, noteId, settingsViewModel!!.defaultRoute!!)
                 }
             }
         }

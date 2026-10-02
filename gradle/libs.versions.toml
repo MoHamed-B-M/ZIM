@@ -21,6 +21,7 @@ navigationCompose = "2.9.2"
 appcompat = "1.7.1"
 glanceAppwidget = "1.1.0"
 billing = "8.0.0"
+okhttp = "4.12.0"
 
 [libraries]
 # Room
@@ -59,6 +60,9 @@ m3color = { module = "com.github.Kyant0:m3color", version.ref = "m3color" }
 
 # Google Play Billing
 billing = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
+
+# Networking (in-app updater)
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 [plugins]
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

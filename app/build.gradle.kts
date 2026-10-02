@@ -30,8 +30,9 @@ android {
         applicationId = "com.zimapp.zim"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7"
+        // CI stamps workflow versions (updater compares versionCode); local fallback keeps theirs.
+        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 14
+        versionName = System.getenv("APP_VERSION_NAME") ?: "1.7"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -42,6 +43,29 @@ android {
         )
     }
 
+    signingConfigs {
+        // CI (build.yaml) exports KEYSTORE_PATH/… (stable secret keystore, or
+        // ephemeral preview keystore). Paths are repo-root relative.
+        create("release") {
+            val ksPath = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+            val ksFile = ksPath?.let { rootProject.file(it) }
+            if (ksFile != null) {
+                check(ksFile.exists()) { "KEYSTORE_PATH points to missing file: $ksPath" }
+                storeFile = ksFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            } else {
+                val debugKs = File(System.getProperty("user.home"), ".android/debug.keystore")
+                if (debugKs.exists()) {
+                    storeFile = debugKs
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -51,7 +75,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         debug {
@@ -105,5 +129,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.okhttp)
     "playstoreImplementation"(libs.billing)
 }
