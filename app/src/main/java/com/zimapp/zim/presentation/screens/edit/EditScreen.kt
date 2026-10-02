@@ -367,16 +367,21 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                 view,
                 arrayOf("*/*"),
             ) { _, payload ->
-                if (payload.source != ViewCompat.RECEIVE_CONTENT_SOURCE_DRAG_AND_DROP) {
+                // Only files/images are intercepted (copied + referenced);
+                // plain text flows through the normal paste/drop path untouched.
+                val hasUris = (0 until payload.clip.itemCount).any { i ->
+                    payload.clip.getItemAt(i).uri != null
+                }
+                if (!hasUris) {
                     payload
                 } else {
-                    attachDroppedClip(context, viewModel, payload.clip) 
+                    attachDroppedClip(context, viewModel, payload.clip)
                     null
                 }
             }
         }
         onDispose {
-            ViewCompat.setOnReceiveContentListener(view, null)
+            ViewCompat.setOnReceiveContentListener(view, null, null)
         }
     }
 
