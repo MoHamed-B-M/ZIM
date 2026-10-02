@@ -12,6 +12,7 @@ import com.zimapp.zim.presentation.screens.settings.settings.MarkdownScreen
 import com.zimapp.zim.presentation.screens.settings.settings.PrivacyScreen
 import com.zimapp.zim.presentation.screens.settings.settings.ToolsScreen
 import com.zimapp.zim.presentation.screens.settings.updates.UpdatesScreen
+import com.zimapp.zim.presentation.screens.settings.updates.UpdatesScreen
 
 enum class ActionType {
     PASSCODE,
@@ -35,6 +36,7 @@ sealed class NavRoutes(val route: String) {
     data object History : NavRoutes("settings/history")
     data object Widgets : NavRoutes("settings/widgets")
     data object About : NavRoutes("settings/about")
+    data object Updates : NavRoutes("settings/updates")
     data object Updates : NavRoutes("settings/updates")
     data object LockScreen : NavRoutes("settings/lock/{type}") {
         fun createRoute(action: ActionType?) = "settings/lock/$action"

@@ -9,17 +9,17 @@ object ConnectionConst {
     /**
      * Support mail.
      */
-    const val SUPPORT_MAIL = "Vexzure@proton.me"
+    const val SUPPORT_MAIL = "benmohamedm715@gmail.com"
 
     /**
      * Url of source code on Github.
      */
-    const val GITHUB_SOURCE_CODE = "https://github.com/Kin69/EasyNotes"
+    const val GITHUB_SOURCE_CODE = "https://github.com/MoHamed-B-M/ZIM"
 
     /**
      * Feature request github.
      */
-    const val GITHUB_FEATURE_REQUEST = "https://github.com/Kin69/EasyNotes/issues/new"
+    const val GITHUB_FEATURE_REQUEST = "https://github.com/MoHamed-B-M/ZIM/issues/new"
 
 
     /**

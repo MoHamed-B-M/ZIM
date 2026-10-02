@@ -95,10 +95,20 @@ class UpdateViewModel @Inject constructor(
             return
         }
         if (!canInstallUnknown(appContext)) {
-            openInstallPermission(appContext)
-            _state.update { it.copy(message = "Allow “Install unknown apps”, then tap Install again") }
+            val opened = runCatching {
+                openInstallPermission(appContext)
+                true
+            }.getOrDefault(false)
+            _state.update {
+                it.copy(
+                    message = if (opened) "Allow “Install unknown apps”, then tap Install again"
+                    else "Cannot open install settings on this device",
+                )
+            }
             return
         }
-        installApk(appContext, file)
+        runCatching { installApk(appContext, file) }.onFailure { e ->
+            _state.update { it.copy(error = "Could not start installer: ${e.message}") }
+        }
     }
 }
