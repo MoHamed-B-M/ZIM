@@ -1,5 +1,6 @@
 package com.zimapp.zim.presentation.screens.settings.settings
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Battery1Bar
 import androidx.compose.material.icons.rounded.Colorize
 import androidx.compose.material.icons.rounded.DarkMode
@@ -37,14 +39,21 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,10 +63,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.zimapp.zim.R
+import com.zimapp.zim.presentation.components.AppIcon
+import com.zimapp.zim.presentation.components.appIconFlow
+import com.zimapp.zim.presentation.components.setAppIcon
 import com.zimapp.zim.presentation.screens.settings.SettingsScaffold
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
 import com.zimapp.zim.presentation.screens.settings.widgets.ActionType
 import com.zimapp.zim.presentation.screens.settings.widgets.SettingsBox
+import kotlinx.coroutines.launch
 import com.zimapp.zim.presentation.theme.PALETTE_COLORS
 
 fun shapeManager(isBoth: Boolean = false,isLast: Boolean = false,isFirst: Boolean = false,radius: Int): RoundedCornerShape {
@@ -243,6 +256,85 @@ fun ColorStylesScreen(navController: NavController, settingsViewModel: SettingsV
                         }
                     }
                 )
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+            item {
+                var showIconPicker by remember { mutableStateOf(false) }
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                val currentIcon by remember(context) { appIconFlow(context) }
+                    .collectAsState(initial = AppIcon.DEFAULT)
+                if (showIconPicker) {
+                    AppIconPickerDialog(
+                        current = currentIcon,
+                        onPick = { picked ->
+                            scope.launch {
+                                setAppIcon(context, picked)
+                                showIconPicker = false
+                            }
+                        },
+                        onDismiss = { showIconPicker = false },
+                    )
+                }
+                SettingsBox(
+                    settingsViewModel = settingsViewModel,
+                    title = stringResource(id = R.string.app_icon_title),
+                    description = currentIcon.label,
+                    icon = Icons.Rounded.Apps,
+                    radius = shapeManager(radius = settingsViewModel.settings.value.cornerRadius, isBoth = true),
+                    actionType = ActionType.CUSTOM,
+                    customAction = { showIconPicker = true },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppIconPickerDialog(
+    current: AppIcon,
+    onPick: (AppIcon) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "App icon",
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                )
+                AppIcon.entries.forEach { option ->
+                    val selected = option == current
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            )
+                            .clickable { onPick(option) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Image(
+                            painter = painterResource(option.previewRes),
+                            contentDescription = option.label,
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Text(
+                            text = option.label,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(start = 16.dp),
+                        )
+                    }
+                }
             }
         }
     }

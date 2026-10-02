@@ -1,0 +1,71 @@
+package com.zimapp.zim.presentation.components
+
+import android.content.ComponentName
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.zimapp.zim.R
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+
+private val Context.appIconPrefs by preferencesDataStore("app_icon_prefs")
+private val KEY_APP_ICON = stringPreferencesKey("app_icon")
+
+// The three launcher sets: default adaptive mipmap + the two alternates.
+// painterResource() cannot load adaptive-icon XMLs, so in-app previews use
+// the raster copies in drawable-nodpi.
+enum class AppIcon(
+    val key: String,
+    val label: String,
+    val drawableRes: Int,
+    val previewRes: Int,
+) {
+    DEFAULT("default", "Midnight", R.mipmap.ic_launcher, R.drawable.preview_icon_default),
+    ICON2("icon2", "Paper ring", R.mipmap.ic_launcher_2, R.drawable.preview_icon_2),
+    ICON3("icon3", "Stack", R.mipmap.ic_launcher_3, R.drawable.preview_icon_3),
+    ;
+
+    companion object {
+        fun byKey(key: String?): AppIcon = entries.firstOrNull { it.key == key } ?: DEFAULT
+    }
+}
+
+fun appIconFlow(context: Context): Flow<AppIcon> =
+    context.appIconPrefs.data.map { AppIcon.byKey(it[KEY_APP_ICON]) }
+
+suspend fun currentAppIcon(context: Context): AppIcon =
+    AppIcon.byKey(context.appIconPrefs.data.first()[KEY_APP_ICON])
+
+suspend fun setAppIcon(context: Context, icon: AppIcon) {
+    context.appIconPrefs.edit { it[KEY_APP_ICON] = icon.key }
+    applyAppIcon(context, icon)
+}
+
+// Enables the chosen LAUNCHER component, disables the other two.
+// DONT_KILL_APP keeps the switch instant with no process restart.
+fun applyAppIcon(context: Context, icon: AppIcon) {
+    val pm = context.packageManager
+    val pkg = context.packageName
+    val main = ComponentName(pkg, "$pkg.presentation.MainActivity")
+    val all = listOf(
+        main,
+        ComponentName(pkg, "$pkg.MainActivityIcon2"),
+        ComponentName(pkg, "$pkg.MainActivityIcon3"),
+    )
+    val target = when (icon) {
+        AppIcon.DEFAULT -> main
+        AppIcon.ICON2 -> ComponentName(pkg, "$pkg.MainActivityIcon2")
+        AppIcon.ICON3 -> ComponentName(pkg, "$pkg.MainActivityIcon3")
+    }
+    all.forEach { cmp ->
+        pm.setComponentEnabledSetting(
+            cmp,
+            if (cmp == target) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+    }
+}
