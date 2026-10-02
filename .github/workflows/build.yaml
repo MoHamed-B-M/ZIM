@@ -202,10 +202,12 @@ jobs:
           echo "Build finished, APKs:"
           find app/build -name "*.apk" -type f -exec ls -lh {} \;
 
-      - name: Find APK paths (per-ABI splits)
+      - name: Find APK paths (per-flavor builds)
         id: findapk
         run: |
-          if ! ls app/build/outputs/apk/release/*.apk >/dev/null 2>&1; then
+          # Flavored builds land in apk/<flavor>/<type>/, not apk/release/.
+          mapfile -t FOUND < <(find app/build/outputs/apk -name "*.apk" -type f | sort)
+          if [[ ${#FOUND[@]} -eq 0 ]]; then
             echo "No APKs found!"
             find app/build -type f | head -n 100
             exit 1
@@ -217,13 +219,14 @@ jobs:
           SAFE=$(echo "$VN" | tr -d '(#)' | tr ' ' '-')
           FRIENDLY=""
           FIRST=""
-          for APK in app/build/outputs/apk/release/*.apk; do
+          for APK in "${FOUND[@]}"; do
+            FLAVOR=$(echo "$APK" | sed -E 's|.*/apk/([^/]+)/.*|\1|')
             case "$APK" in
               *arm64-v8a*) ABI="arm64" ;;
               *armeabi-v7a*) ABI="armv7" ;;
               *) ABI="universal" ;;
             esac
-            OUT="ZIM-${SAFE}-${ABI}.apk"
+            OUT="ZIM-${SAFE}-${FLAVOR}-${ABI}.apk"
             cp "$APK" "$OUT"
             sha256sum "$OUT" > "$OUT.sha256"
             cat "$OUT.sha256"
