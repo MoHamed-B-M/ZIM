@@ -10,7 +10,6 @@ import com.zimapp.zim.presentation.screens.settings.settings.ColorStylesScreen
 import com.zimapp.zim.presentation.screens.settings.settings.LanguageScreen
 import com.zimapp.zim.presentation.screens.settings.settings.MarkdownScreen
 import com.zimapp.zim.presentation.screens.settings.settings.PrivacyScreen
-import com.zimapp.zim.presentation.screens.settings.settings.SupportScreen
 import com.zimapp.zim.presentation.screens.settings.settings.ToolsScreen
 
 enum class ActionType {
@@ -35,7 +34,6 @@ sealed class NavRoutes(val route: String) {
     data object History : NavRoutes("settings/history")
     data object Widgets : NavRoutes("settings/widgets")
     data object About : NavRoutes("settings/about")
-    data object Support : NavRoutes("settings/support")
     data object LockScreen : NavRoutes("settings/lock/{type}") {
         fun createRoute(action: ActionType?) = "settings/lock/$action"
     }
@@ -50,5 +48,4 @@ val settingScreens = mapOf<String, @Composable (settingsViewModel: SettingsViewM
     NavRoutes.Markdown.route to { settings, navController ->  MarkdownScreen(navController,settings) },
     NavRoutes.Tools.route to { settings, navController -> ToolsScreen(navController,settings) },
     NavRoutes.About.route to { settings, navController -> AboutScreen(navController,settings) },
-    NavRoutes.Support.route to { settings, navController -> SupportScreen(navController,settings) }
 )

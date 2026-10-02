@@ -77,8 +77,8 @@ suspend fun fetchUpdate(client: OkHttpClient, beta: Boolean): Result<RemoteUpdat
                         .map { assets.getJSONObject(it) }
                         .filter { it.optString("name").endsWith(".apk", ignoreCase = true) }
                     if (apks.isEmpty()) continue
-                    // Prefer the fdroid flavor (no Play billing assumptions when
-                    // sideloading), then arm64, then universal.
+                    // Prefer the fdroid flavor when present (no Play billing
+                    // assumptions when sideloading), then arm64, then universal.
                     val pick = apks.firstOrNull { "fdroid" in it.optString("name").lowercase() }
                         ?: apks.firstOrNull { "arm64" in it.optString("name").lowercase() }
                         ?: apks.firstOrNull { "universal" in it.optString("name").lowercase() }

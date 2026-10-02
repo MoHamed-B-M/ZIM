@@ -1,6 +1,5 @@
 package com.zimapp.zim.presentation.screens.settings.settings
 
-import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -10,34 +9,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ContactSupport
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Build
-import androidx.compose.material.icons.rounded.Coffee
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.zimapp.zim.R
 import com.zimapp.zim.core.constant.ConnectionConst
-import com.zimapp.zim.core.constant.SupportConst
-import com.zimapp.zim.core.constant.SupportConst.getSupportersMap
 import com.zimapp.zim.presentation.screens.settings.SettingsScaffold
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
 import com.zimapp.zim.presentation.screens.settings.update.AppUpdateSection
 import com.zimapp.zim.presentation.screens.settings.widgets.ActionType
-import com.zimapp.zim.presentation.screens.settings.widgets.ListDialog
 import com.zimapp.zim.presentation.screens.settings.widgets.SettingsBox
 
 
 @Composable
 fun AboutScreen(navController: NavController, settingsViewModel: SettingsViewModel) {
     val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
     SettingsScaffold(
         settingsViewModel = settingsViewModel,
         title = stringResource(id = R.string.about),
@@ -50,17 +43,6 @@ fun AboutScreen(navController: NavController, settingsViewModel: SettingsViewMod
                 ) {
                     AppUpdateSection()
                 }
-            }
-            item {
-                SettingsBox(
-                    settingsViewModel = settingsViewModel,
-                    title = stringResource(id = R.string.support_list),
-                    icon = Icons.Rounded.Coffee,
-                    actionType = ActionType.CUSTOM,
-                    radius = shapeManager(isBoth = true, radius = settingsViewModel.settings.value.cornerRadius),
-                    customAction = { onExit -> ContributorsClicked(context, settingsViewModel = settingsViewModel) { onExit() } }
-                )
-                Spacer(modifier = Modifier.height(18.dp))
             }
             item {
                 SettingsBox(
@@ -151,37 +133,6 @@ fun AboutScreen(navController: NavController, settingsViewModel: SettingsViewMod
         }
     }
 
-}
-
-@Composable
-fun ContributorsClicked(
-    context: Context,
-    settingsViewModel: SettingsViewModel,
-    onExit: () -> Unit
-) {
-    fun contributors(context: Context): List<Pair<String, String>> {
-        val map = getSupportersMap(context)
-        return map.flatMap { (role, supporters) ->
-            supporters.map { supporter -> Pair(supporter, role) }
-        }
-    }
-
-    ListDialog(
-        text = stringResource(R.string.support_list),
-        list = contributors(context),
-        settingsViewModel = settingsViewModel,
-        onExit = onExit,
-        extractDisplayData = { it }
-    ) { isFirstItem, isLastItem, displayData ->
-        SettingsBox(
-            settingsViewModel = settingsViewModel,
-            title = displayData.first,
-            description = displayData.second,
-            radius = shapeManager(isFirst = isFirstItem, isLast = isLastItem, radius = settingsViewModel.settings.value.cornerRadius),
-            actionType = ActionType.TEXT,
-            customText = "❤"
-        )
-    }
 }
 
 

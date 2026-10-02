@@ -12,11 +12,7 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -30,7 +26,6 @@ import com.zimapp.zim.presentation.navigation.NavRoutes
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
 import com.zimapp.zim.presentation.screens.settings.widgets.SectionBlock
 import com.zimapp.zim.presentation.screens.settings.widgets.SettingSection
-import com.zimapp.zim.presentation.screens.settings.widgets.SupportBox
 
 @Composable
 fun SettingsScaffold(
@@ -58,16 +53,6 @@ fun SettingsScaffold(
 
 @Composable
 fun MainSettings(settingsViewModel: SettingsViewModel, navController: NavController) {
-    var showSupportDialog by remember { mutableStateOf(false) }
-
-    if (showSupportDialog) {
-        SupportContent(
-            navController = navController,
-            settingsViewModel = settingsViewModel,
-            onExit = { showSupportDialog = false }
-        )
-    }
-
     SettingsScaffold(
         settingsViewModel = settingsViewModel,
         title = stringResource(id = R.string.screen_settings),
@@ -76,13 +61,6 @@ fun MainSettings(settingsViewModel: SettingsViewModel, navController: NavControl
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            item {
-                SupportBox(
-                    title = stringResource(id = R.string.support),
-                    description = stringResource(id = R.string.support_description),
-                    onAction = { showSupportDialog = true }
-                )
-            }
             item {
                 SectionBlock(
                     listOf(

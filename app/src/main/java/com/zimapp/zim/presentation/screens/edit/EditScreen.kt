@@ -127,7 +127,8 @@ fun TopBarActions(pagerState: PagerState, onClickBack: () -> Unit, viewModel: Ed
                 }
                 DropdownMenu(
                     expanded = viewModel.isEditMenuVisible.value,
-                    onDismissRequest = { viewModel.toggleEditMenuVisibility(false) }
+                    onDismissRequest = { viewModel.toggleEditMenuVisibility(false) },
+                    shape = RoundedCornerShape(28.dp),
                 ) {
                     if (viewModel.noteId.value != 0) {
                         DropdownMenuItem(

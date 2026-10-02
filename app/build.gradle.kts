@@ -9,22 +9,6 @@ plugins {
 android {
     namespace = "com.zimapp.zim"
     compileSdk = 36
-    flavorDimensions += "store"
-
-    productFlavors {
-        create("fdroid") {
-            dimension = "store"
-            applicationId = "com.zimapp.zim"
-            versionNameSuffix = "-fdroid"
-            isDefault = true
-        }
-
-        create("playstore") {
-            dimension = "store"
-            applicationId = "com.zimapp.zim"
-            versionNameSuffix = "-playstore"
-        }
-    }
 
     defaultConfig {
         applicationId = "com.zimapp.zim"
@@ -130,5 +114,4 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.okhttp)
-    "playstoreImplementation"(libs.billing)
 }
