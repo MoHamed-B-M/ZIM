@@ -27,6 +27,8 @@ const val UPDATE_REPO = "ZIM"
 const val BETA_TAG = "beta-latest"
 // Must mirror the workflow's BETA_CODE_OFFSET so beta codes compare correctly.
 const val BETA_CODE_OFFSET = 100000
+// Rendered by raw.githubusercontent; the updater reads its top section.
+const val CHANGELOG_URL = "https://raw.githubusercontent.com/MoHamed-B-M/ZIM/beta/changelogs.md"
 
 data class RemoteUpdate(
     val beta: Boolean,
@@ -56,6 +58,33 @@ private fun parseBetaCode(name: String): Int =
 // Stable tags look like "v1.0.0+1" → code after '+'.
 private fun parseStableCode(tag: String): Int =
     Regex("""\+(\d+)\s*$""").find(tag)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+// "What's new" comes from the top section of changelogs.md (simple bullets).
+// Falls back to "" when offline — the UI hides empty notes.
+private fun changelogBullets(client: OkHttpClient): String {
+    return runCatching {
+        val req = Request.Builder().url(CHANGELOG_URL).get().build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) return ""
+            val lines = (resp.body ?: return "").string().lineSequence()
+                .map { it.trim() }
+                .dropWhile { !it.startsWith("## [") }
+                .drop(1)
+                .takeWhile { !it.startsWith("## [") }
+                .map { it.trim() }
+                .filter { it.startsWith("- ") }
+                .take(8)
+                .map { line ->
+                    "• " + line.removePrefix("- ").trim()
+                        .replace("**", "")
+                        .replace(Regex("""\[(.*?)]\(.*?\)"""), "$1")
+                }
+                .joinToString("\n")
+                .take(600)
+            lines
+        }
+    }.getOrDefault("")
+}
 
 // Beta channel → rolling prerelease; stable channel → latest finished release.
 suspend fun fetchUpdate(client: OkHttpClient, beta: Boolean): Result<RemoteUpdate> =
@@ -91,13 +120,7 @@ suspend fun fetchUpdate(client: OkHttpClient, beta: Boolean): Result<RemoteUpdat
                         apkUrl = pick.getString("browser_download_url"),
                         apkName = pick.optString("name"),
                         publishedAt = o.optString("published_at").take(10),
-                        notes = o.optString("body").lineSequence()
-                            .map { it.trim() }
-                            .filter { it.startsWith("- ") }
-                            .take(6)
-                            .map { "• " + it.removePrefix("- ").trim().replace("**", "") }
-                            .joinToString("\n")
-                            .take(600),
+                        notes = changelogBullets(client),
                     )
                 }
                 error(if (beta) "No beta prerelease published yet" else "No stable release published yet")
