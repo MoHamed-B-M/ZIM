@@ -1,25 +1,26 @@
 package com.zimapp.zim.domain.model
 
-import kotlinx.serialization.Serializable
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-enum class SyncStatus { SYNCED, PENDING, CONFLICT }
-
-enum class NoteFormat { RICH, MARKDOWN }
-
-@Serializable
+@Entity(tableName = "notes-table")
 data class Note(
-    val id: String,
-    val title: String,
-    val content: String,
-    val createdAt: Long,
-    val updatedAt: Long,
-    val isPinned: Boolean = false,
-    val isArchived: Boolean = false,
-    val isDeleted: Boolean = false,
-    val deletedAt: Long? = null,
-    val syncStatus: SyncStatus = SyncStatus.PENDING,
-    val tags: List<String> = emptyList(),
-    val colorToken: Int = 0, // 0 = default surface, 1..5 = expressive tonal seeds
-    // RICH = formatted HTML, MARKDOWN = raw markdown. New notes default RICH.
-    val format: NoteFormat = NoteFormat.RICH,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    @ColumnInfo(name = "note-name")
+    val name: String,
+
+    @ColumnInfo(name = "note-description")
+    val description: String,
+
+    @ColumnInfo(name = "pinned")
+    val pinned: Boolean = false,
+
+    @ColumnInfo(name = "encrypted")
+    val encrypted: Boolean = false,
+
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long = System.currentTimeMillis() // Default value is the current timestamp
 )

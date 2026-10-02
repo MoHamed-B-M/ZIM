@@ -1,6 +1,12 @@
 pluginManagement {
     repositories {
-        google()
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -10,8 +16,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { setUrl("https://jitpack.io") } // m3color (Kyant0) lives here
+        maven { setUrl("https://jitpack.io") }
     }
 }
-rootProject.name = "ZIM"
+
+rootProject.name = "Easy Notes"
 include(":app")
+ 

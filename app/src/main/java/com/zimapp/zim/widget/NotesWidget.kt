@@ -1,78 +1,67 @@
 package com.zimapp.zim.widget
 
 import android.content.Context
-import android.content.Intent
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.datastore.core.DataStore
 import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.LocalContext
-import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.layout.Column
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.padding
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import com.zimapp.zim.MainActivity
-import com.zimapp.zim.domain.repository.NoteRepository
-import kotlinx.coroutines.flow.first
-import org.koin.core.context.GlobalContext
+import androidx.glance.currentState
+import androidx.glance.state.GlanceStateDefinition
+import com.zimapp.zim.domain.usecase.NoteUseCase
+import com.zimapp.zim.widget.ui.SelectedNote
+import com.zimapp.zim.widget.ui.ZeroState
+import dagger.hilt.EntryPoint
+import dagger.hilt.EntryPoints
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import java.io.File
 
-// Shows the most recently updated note; tap opens the app.
-// (Simplified from EasyNotes' per-widget note picker — no config activity.)
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetModelRepositoryEntryPoint {
+    fun noteUseCase() : NoteUseCase
+}
+
 class NotesWidget : GlanceAppWidget() {
+    override val stateDefinition: GlanceStateDefinition<List<Pair<Int, Int>>>
+        get() = object: GlanceStateDefinition<List<Pair<Int, Int>>> {
+            override suspend fun getDataStore(
+                context: Context,
+                fileKey: String
+            ): DataStore<List<Pair<Int, Int>>> {
+                return NotesDataStore(context)
+            }
+            override fun getLocation(context: Context, fileKey: String): File {
+                throw NotImplementedError("Not implemented")
+            }
+        }
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repo: NoteRepository = GlobalContext.get().get()
-        val note = repo.observeNotes(includeArchived = false).first().firstOrNull()
+        val noteUseCase = getNoteUseCase(context)
+        val widgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+
         provideContent {
             GlanceTheme {
-                val ctx = LocalContext.current
-                Column(
-                    modifier = GlanceModifier.fillMaxSize()
-                        .background(GlanceTheme.colors.background)
-                        .padding(12.dp)
-                        .clickable {
-                            ctx.startActivity(
-                                Intent(ctx, MainActivity::class.java).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                },
-                            )
-                        },
-                ) {
-                    if (note == null) {
-                        Text(
-                            text = "No notes yet — open ZIM",
-                            style = TextStyle(fontSize = 14.sp, color = GlanceTheme.colors.primary),
-                        )
-                    } else {
-                        if (note.title.isNotBlank()) {
-                            Text(
-                                text = note.title,
-                                style = TextStyle(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = GlanceTheme.colors.primary,
-                                ),
-                                maxLines = 2,
-                            )
-                        }
-                        if (note.content.isNotBlank()) {
-                            Text(
-                                text = note.content.take(300),
-                                style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.onBackground),
-                                maxLines = 8,
-                                modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-                            )
-                        }
+                currentState<List<Pair<Int, Int>>>().firstOrNull { it.first == widgetId }?.second.let { noteId ->
+                    noteUseCase.observe()
+                    val selectedNote = noteUseCase.notes.filter { it.id == noteId }
+                    when {
+                        selectedNote.isEmpty() -> ZeroState(widgetId = widgetId)
+                        else -> SelectedNote(selectedNote.first(), noteUseCase, widgetId = widgetId)
                     }
                 }
             }
         }
     }
+}
+
+
+fun getNoteUseCase(applicationContext: Context): NoteUseCase {
+    var widgetModelRepositoryEntrypoint: WidgetModelRepositoryEntryPoint = EntryPoints.get(
+        applicationContext,
+        WidgetModelRepositoryEntryPoint::class.java,
+    )
+    return widgetModelRepositoryEntrypoint.noteUseCase()
 }

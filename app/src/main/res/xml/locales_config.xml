@@ -22,4 +22,6 @@
     <locale android:name="sr" />
     <locale android:name="uk" />
     <locale android:name="vi" />
+
 </locale-config>
+
