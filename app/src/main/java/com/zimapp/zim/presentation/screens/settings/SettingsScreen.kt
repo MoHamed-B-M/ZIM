@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Work
 import androidx.compose.runtime.Composable
@@ -131,6 +132,14 @@ fun MainSettings(settingsViewModel: SettingsViewModel, navController: NavControl
                             ),
                             icon = Icons.Rounded.Info,
                             onClick = { navController.navigate(NavRoutes.About.route) }
+                        ),
+                        SettingSection(
+                            title = stringResource(id = R.string.app_updates),
+                            features = listOf(
+                                stringResource(R.string.description_updates)
+                            ),
+                            icon = Icons.Rounded.SystemUpdate,
+                            onClick = { navController.navigate(NavRoutes.Updates.route) }
                         )
                     )
                 )

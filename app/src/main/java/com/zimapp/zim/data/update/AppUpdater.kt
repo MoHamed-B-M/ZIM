@@ -91,7 +91,13 @@ suspend fun fetchUpdate(client: OkHttpClient, beta: Boolean): Result<RemoteUpdat
                         apkUrl = pick.getString("browser_download_url"),
                         apkName = pick.optString("name"),
                         publishedAt = o.optString("published_at").take(10),
-                        notes = o.optString("body").lineSequence().take(8).joinToString("\n").take(600),
+                        notes = o.optString("body").lineSequence()
+                            .map { it.trim() }
+                            .filter { it.startsWith("- ") }
+                            .take(6)
+                            .map { "• " + it.removePrefix("- ").trim().replace("**", "") }
+                            .joinToString("\n")
+                            .take(600),
                     )
                 }
                 error(if (beta) "No beta prerelease published yet" else "No stable release published yet")

@@ -11,6 +11,7 @@ import com.zimapp.zim.presentation.screens.settings.settings.LanguageScreen
 import com.zimapp.zim.presentation.screens.settings.settings.MarkdownScreen
 import com.zimapp.zim.presentation.screens.settings.settings.PrivacyScreen
 import com.zimapp.zim.presentation.screens.settings.settings.ToolsScreen
+import com.zimapp.zim.presentation.screens.settings.updates.UpdatesScreen
 
 enum class ActionType {
     PASSCODE,
@@ -34,6 +35,7 @@ sealed class NavRoutes(val route: String) {
     data object History : NavRoutes("settings/history")
     data object Widgets : NavRoutes("settings/widgets")
     data object About : NavRoutes("settings/about")
+    data object Updates : NavRoutes("settings/updates")
     data object LockScreen : NavRoutes("settings/lock/{type}") {
         fun createRoute(action: ActionType?) = "settings/lock/$action"
     }
@@ -48,4 +50,5 @@ val settingScreens = mapOf<String, @Composable (settingsViewModel: SettingsViewM
     NavRoutes.Markdown.route to { settings, navController ->  MarkdownScreen(navController,settings) },
     NavRoutes.Tools.route to { settings, navController -> ToolsScreen(navController,settings) },
     NavRoutes.About.route to { settings, navController -> AboutScreen(navController,settings) },
+    NavRoutes.Updates.route to { settings, navController -> UpdatesScreen(navController,settings) },
 )
