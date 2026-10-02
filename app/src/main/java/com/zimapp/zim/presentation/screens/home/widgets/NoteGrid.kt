@@ -41,12 +41,13 @@ fun NotesGrid(
     val (pinnedNotes, otherNotes) = notes.partition { it.pinned }
 
     @Composable
-    fun Note(note: Note, notes: List<Note>) {
+    fun Note(note: Note, notes: List<Note>, modifier: Modifier = Modifier) {
         val isAnimationVisible = rememberTransitionState()
         AnimatedVisibility(
             visibleState = isAnimationVisible,
             enter = getNoteEnterAnimation(),
-            exit = getNoteExitAnimation(calculateSlideDirection(notes, note))
+            exit = getNoteExitAnimation(calculateSlideDirection(notes, note)),
+            modifier = modifier.animateItem(),
         ) {
             NoteCard(
                 settingsViewModel = settingsViewModel,
@@ -80,7 +81,7 @@ fun NotesGrid(
                         style = TextStyle(fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary)
                     )
                 }
-                items(pinnedNotes) { note ->
+                items(pinnedNotes, key = { it.id }) { note ->
                     Note(note, pinnedNotes)
                 }
                 if (otherNotes.isNotEmpty()) {
@@ -93,7 +94,7 @@ fun NotesGrid(
                     }
                 }
             }
-            items(otherNotes) { note ->
+            items(otherNotes, key = { it.id }) { note ->
                 Note(note, otherNotes)
             }
         },
