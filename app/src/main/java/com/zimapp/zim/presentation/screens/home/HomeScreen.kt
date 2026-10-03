@@ -168,6 +168,7 @@ fun HomeView (
                     viewModel.noteUseCase.deleteNoteById(it)
                 },
             )
+            }
         }
     )
 }
