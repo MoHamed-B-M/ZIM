@@ -46,8 +46,7 @@ fun NotesGrid(
         AnimatedVisibility(
             visibleState = isAnimationVisible,
             enter = getNoteEnterAnimation(),
-            exit = getNoteExitAnimation(calculateSlideDirection(notes, note)),
-            modifier = modifier.animateItem(),
+            exit = getNoteExitAnimation(calculateSlideDirection(notes, note))
         ) {
             NoteCard(
                 settingsViewModel = settingsViewModel,
