@@ -31,6 +31,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ import com.zimapp.zim.data.update.canInstallUnknown
 import com.zimapp.zim.data.update.openInstallPermission
 import com.zimapp.zim.presentation.components.material.MaterialScaffold
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
+import kotlinx.coroutines.launch
 
 // First-run walkthrough. Its single job is to make the "Install unknown apps"
 // grant understandable before it is ever needed: the updater asks for it again
@@ -89,6 +91,13 @@ fun OnboardingScreen(
         onFinished()
     }
 
+    // PagerState has no nextPage()/previousPage(); animating to the target
+    // index is the supported way to move programmatically.
+    val pagerScope = rememberCoroutineScope()
+    fun goToPage(page: Int) {
+        pagerScope.launch { pagerState.animateScrollToPage(page) }
+    }
+
     MaterialScaffold(
         content = {
             Column(
@@ -113,7 +122,7 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (pagerState.currentPage > 0) {
-                        TextButton(onClick = { pagerState.previousPage() }) {
+                        TextButton(onClick = { goToPage(pagerState.currentPage - 1) }) {
                             Text(stringResource(R.string.onboarding_back))
                         }
                     }
@@ -142,7 +151,7 @@ fun OnboardingScreen(
                             )
                         }
                     } else {
-                        Button(onClick = { pagerState.nextPage() }) {
+                        Button(onClick = { goToPage(pagerState.currentPage + 1) }) {
                             Text(stringResource(R.string.onboarding_next))
                         }
                         TextButton(onClick = { finish() }) {
@@ -205,7 +214,7 @@ private fun OnboardingPager(
             ) {
                 step.bullets.forEachIndexed { index, bullet ->
                     val text = stringResource(bullet)
-                    val highlighted = step.permissionBullets.getOrNull(index) == true
+                    val highlighted = step.permissionBullets[index] == true
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = if (highlighted && permissionGranted) {
@@ -238,7 +247,6 @@ private fun OnboardingPager(
     }
 }
 
-@Composable
 @Composable
 private fun OnboardingDots(count: Int, current: Int) {
     Row(

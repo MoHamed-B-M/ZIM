@@ -53,7 +53,7 @@ fun AppNavHost(settingsModel: SettingsViewModel,navController: NavHostController
 
         animatedComposable(NavRoutes.Terms.route) {
             TermsScreen(
-                settingsModel = settingsModel,
+                settingsViewModel = settingsModel,
                 onAgreed = {
                     // Terms used to leave the user stranded on this screen, since
                     // accepting only flipped a flag nothing was watching.
@@ -70,12 +70,15 @@ fun AppNavHost(settingsModel: SettingsViewModel,navController: NavHostController
             OnboardingScreen(
                 settingsViewModel = settingsModel,
                 onFinished = {
+                    // Re-opened from a settings screen: dismiss and keep the
+                    // stack the user came from, rather than dumping the user
+                    // back at the notes list.
+                    val previousRoute =
+                        navController.previousBackStackEntry?.destination?.route
                     when {
                         // Launched from a widget, which expects to open a note.
                         noteId != -1 -> activity?.finish()
-                        // Re-opened from a settings screen: dismiss and keep the
-                        // stack the user came from.
-                        navController.previousBackStackEntry?.destination?.route in settingScreens ->
+                        previousRoute != null && settingScreens.containsKey(previousRoute) ->
                             navController.navigateUp()
                         else -> navController.navigate(NavRoutes.Home.route) { popUpToTop(navController) }
                     }
