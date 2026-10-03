@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Easy Notes</string>
+    <string name="app_name">ZIM</string>
     <string name="home_screen">Notlar</string>
     <string name="new_note">Yeni Not</string>
     <string name="no_created_notes">Oluşturulan not yok.</string>
@@ -113,29 +113,29 @@
     <string name="agree">Kabul Et</string>
     <string name="terms_of_service">Hizmet koşulları</string>
     <string name="terms_acceptance_title">1. Koşulların Kabul Edilmesi</string>
-    <string name="terms_acceptance_body">Kabul ediyoruma basarak ve Easy Notes\'u kullanarak bu Hizmet Koşullarını kabul etmiş olursunuz. Kabul etmiyorsanız, uygulamayı kullanmayın.</string>
+    <string name="terms_acceptance_body">Kabul ediyoruma basarak ve ZIM\'u kullanarak bu Hizmet Koşullarını kabul etmiş olursunuz. Kabul etmiyorsanız, uygulamayı kullanmayın.</string>
     <string name="terms_license_title">2. Lisans</string>
-    <string name="terms_license_body">Easy Notes **GNU Genel Kamu Lisansı (GPL) sürüm 3** altında dağıtılmaktadır. Bu şu anlama gelir:
+    <string name="terms_license_body">ZIM **GNU Genel Kamu Lisansı (GPL) sürüm 3** altında dağıtılmaktadır. Bu şu anlama gelir:
 \n
 \n- Uygulamayı kullanmakta, değiştirmekte ve paylaşmakta özgürsünüz.
 \n- Uygulamayı veya üzerinde değişiklik yapılan sürümlerini dağıtırsanız, kaynak kodunu da dağıtmanız ve GPL lisansını korumanız gerekir.</string>
-    <string name="terms_liability_body">Dolaylı, kazayla veya sonuç olarak ortaya çıkan zararlar da dahil olmak üzere Easy Notes\'u kullanmanızdan kaynaklanan hiçbir zarardan sorumlu değiliz.</string>
-    <string name="terms_use_body">Easy Notes\'u yalnızca yasal amaçlar için ve bu koşullara uygun olarak kullanmayı kabul edersiniz. Aşağıdakileri **yapamazsınız**:
+    <string name="terms_liability_body">Dolaylı, kazayla veya sonuç olarak ortaya çıkan zararlar da dahil olmak üzere ZIM\'u kullanmanızdan kaynaklanan hiçbir zarardan sorumlu değiliz.</string>
+    <string name="terms_use_body">ZIM\'u yalnızca yasal amaçlar için ve bu koşullara uygun olarak kullanmayı kabul edersiniz. Aşağıdakileri **yapamazsınız**:
 \n
 \n- _Uygulamayı herhangi bir yasa dışı amaç için kullanmak_
 \n- _Başkalarının haklarını ihlal etmek_
 \n- _Uygulamanın işlevselliğini veya güvenliğini bozmak_</string>
     <string name="terms_intellectual_property_title">4. Fikri Mülkiyet</string>
-    <string name="terms_intellectual_property_body">Easy Notes\'taki tüm fikri mülkiyet hakları bize veya lisans verenlerimize aittir. Uygulamayı kullanmanız size herhangi bir fikri mülkiyet hakkının sahipliğini vermez.</string>
-    <string name="terms_disclaimer_body">Easy Notes herhangi bir garanti olmaksızın olduğu gibi sunulmaktadır. Uygulamanın hatasız, güvenli veya kesintisiz olacağını garanti etmiyoruz.</string>
+    <string name="terms_intellectual_property_body">ZIM\'taki tüm fikri mülkiyet hakları bize veya lisans verenlerimize aittir. Uygulamayı kullanmanız size herhangi bir fikri mülkiyet hakkının sahipliğini vermez.</string>
+    <string name="terms_disclaimer_body">ZIM herhangi bir garanti olmaksızın olduğu gibi sunulmaktadır. Uygulamanın hatasız, güvenli veya kesintisiz olacağını garanti etmiyoruz.</string>
     <string name="terms_liability_title">6. Sorumluluğun Sınırlandırılması</string>
-    <string name="terms_termination_body">Bu koşulları ihlal etmeniz halinde Easy Notes\'a erişiminizi sonlandırabilir veya askıya alabiliriz. Sonlandırıldığında, uygulamayı kullanma hakkınız hemen sona erecektir.</string>
+    <string name="terms_termination_body">Bu koşulları ihlal etmeniz halinde ZIM\'a erişiminizi sonlandırabilir veya askıya alabiliriz. Sonlandırıldığında, uygulamayı kullanma hakkınız hemen sona erecektir.</string>
     <string name="terms_changes_title">8. Koşullarda Değişiklikler</string>
-    <string name="terms_changes_body">Bu Hizmet Koşullarını zaman zaman güncelleyebiliriz. Herhangi bir değişiklikten sonra Easy Notes\'u kullanmaya devam etmeniz, değiştirilen koşulları kabul ettiğiniz anlamına gelir.</string>
+    <string name="terms_changes_body">Bu Hizmet Koşullarını zaman zaman güncelleyebiliriz. Herhangi bir değişiklikten sonra ZIM\'u kullanmaya devam etmeniz, değiştirilen koşulları kabul ettiğiniz anlamına gelir.</string>
     <string name="terms_contact_title">9. Bizimle İletişime Geçin</string>
-    <string name="terms_contact_body">Bu Hizmet Koşulları veya Easy Notes ile ilgili sorularınız için lütfen bizimle şu adresten iletişime geçin</string>
+    <string name="terms_contact_body">Bu Hizmet Koşulları veya ZIM ile ilgili sorularınız için lütfen bizimle şu adresten iletişime geçin</string>
     <string name="terms_privacy_title">10. Gizlilik Politikası</string>
-    <string name="terms_privacy_body">Easy Notes herhangi bir kişisel veri toplamaz. Daha fazla bilgi için lütfen şu adreste bulunan Gizlilik Politikamıza bakın</string>
+    <string name="terms_privacy_body">ZIM herhangi bir kişisel veri toplamaz. Daha fazla bilgi için lütfen şu adreste bulunan Gizlilik Politikamıza bakın</string>
     <string name="file_import_error">İçe aktarılamadı</string>
     <string name="file_import_description">Diğer metin dosyalarını not olarak içe aktarın</string>
     <string name="file_import_partial_error">Bazı dosyalar içe aktarılamadı</string>

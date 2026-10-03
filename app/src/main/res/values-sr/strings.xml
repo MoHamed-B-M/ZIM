@@ -86,19 +86,19 @@
     <string name="show_only_title_description">Prikaži samo naslov u pregledu</string>
     <string name="terms_acceptance_title">1. Prihvatanje Uslova</string>
     <string name="terms_license_title">2. Licenca</string>
-    <string name="terms_license_body">Easy Notes se distribuira pod **GNU General Public License (GPL) verzija 3**. to znači:
+    <string name="terms_license_body">ZIM se distribuira pod **GNU General Public License (GPL) verzija 3**. to znači:
 \n
 \n- Možete slobodno da koristite, menjate i delite aplikaciju.
 \n- Ako distribuirate aplikaciju ili bilo koju modifikovanu verziju, morate takođe distribuirati izvorni kod i zadržati GPL licencu.</string>
     <string name="terms_intellectual_property_body">Sva prava intelektualne svojine u Easi Notes-u su u vlasništvu nas ili naših davalaca licence. Vaše korišćenje aplikacije ne daje vam vlasništvo nad bilo kakvim pravima intelektualne svojine.</string>
     <string name="terms_disclaimer_title">5. Odricanje od Garancije</string>
     <string name="terms_intellectual_property_title">4. Intelektualna Svojina</string>
-    <string name="terms_disclaimer_body">Easy Notes je obezbeđen takav kakav jeste, bez ikakvih garancija. Ne garantujemo da će aplikacija biti bez grešaka, bezbedna ili neprekidna.</string>
+    <string name="terms_disclaimer_body">ZIM je obezbeđen takav kakav jeste, bez ikakvih garancija. Ne garantujemo da će aplikacija biti bez grešaka, bezbedna ili neprekidna.</string>
     <string name="terms_liability_title">6. Ograničenje Odgovornosti</string>
     <string name="terms_termination_title">7. Raskid</string>
     <string name="terms_privacy_title">10. Politika Privatnosti</string>
-    <string name="terms_privacy_body">Easy Notes ne prikuplja nikakve lične podatke. Za više informacija pogledajte našu Politiku privatnosti koja je dostupna na</string>
-    <string name="terms_contact_body">Za bilo kakva pitanja u vezi sa ovim uslovima korišćenja usluge ili Easy Notes-a, kontaktirajte nas na</string>
+    <string name="terms_privacy_body">ZIM ne prikuplja nikakve lične podatke. Za više informacija pogledajte našu Politiku privatnosti koja je dostupna na</string>
+    <string name="terms_contact_body">Za bilo kakva pitanja u vezi sa ovim uslovima korišćenja usluge ili ZIM-a, kontaktirajte nas na</string>
     <string name="terms_effective_date">Datum stupanja na snagu</string>
     <string name="agree">Slažem se</string>
     <string name="terms_of_service">Uslovi korišćenja usluge</string>
@@ -125,14 +125,14 @@
     <string name="invalid_input">Nevažeći unos</string>
     <string name="show_only_title">Prikaži samo naslov</string>
     <string name="terms_acceptance_body">Pritiskom na Slažem se i korišćenjem Easi Notes prihvatate ove Uslove korišćenja usluge. Ako se ne slažete, nemojte koristiti aplikaciju.</string>
-    <string name="terms_use_body">Saglasni ste da ćete Easy Notes koristiti samo u zakonite svrhe iu skladu sa ovim Uslovima. Ne smete **ne**:
+    <string name="terms_use_body">Saglasni ste da ćete ZIM koristiti samo u zakonite svrhe iu skladu sa ovim Uslovima. Ne smete **ne**:
 \n
 \n- _Koristite aplikaciju u bilo koju nezakonitu svrhu_
 \n- _Krši prava drugih_
 \n- _Remeti funkcionalnost ili bezbednost aplikacije_</string>
-    <string name="terms_liability_body">Ne snosimo odgovornost za bilo kakvu štetu nastalu vašim korišćenjem Easy Notes-a, uključujući indirektnu, slučajnu ili posledičnu štetu.</string>
-    <string name="terms_termination_body">Možemo ukinuti ili suspendovati vaš pristup Easy Notes-u ako prekršite ove Uslove. Nakon raskida, vaše pravo na korišćenje aplikacije prestaje odmah.</string>
-    <string name="terms_changes_body">Možemo s vremena na vreme ažurirati ove Uslove korišćenja usluge. Vaše dalje korišćenje Easy Notes-a nakon bilo kakvih promena predstavlja prihvatanje revidiranih uslova.</string>
+    <string name="terms_liability_body">Ne snosimo odgovornost za bilo kakvu štetu nastalu vašim korišćenjem ZIM-a, uključujući indirektnu, slučajnu ili posledičnu štetu.</string>
+    <string name="terms_termination_body">Možemo ukinuti ili suspendovati vaš pristup ZIM-u ako prekršite ove Uslove. Nakon raskida, vaše pravo na korišćenje aplikacije prestaje odmah.</string>
+    <string name="terms_changes_body">Možemo s vremena na vreme ažurirati ove Uslove korišćenja usluge. Vaše dalje korišćenje ZIM-a nakon bilo kakvih promena predstavlja prihvatanje revidiranih uslova.</string>
     <string name="terms_changes_title">8. Promene Uslova</string>
     <string name="terms_use_title">3. Korišćenje Aplikacije</string>
     <string name="terms_contact_title">9. Kontaktirajte Nas</string>

@@ -8,7 +8,7 @@
     <string name="source_code">Código Fonte</string>
     <string name="show_only_title_description">Mostrar apenas título na ante-visão</string>
     <string name="support">Suporte</string>
-    <string name="app_name">Easy Notes</string>
+    <string name="app_name">ZIM</string>
     <string name="select_all">Selecionar todas</string>
     <string name="dynamic_colors">Cores Dinâmicas</string>
     <string name="about">Acerca</string>
@@ -93,7 +93,7 @@
     <string name="terms_disclaimer_title">5. Garantias</string>
     <string name="terms_liability_title">6. Exclusões de Responsabilidade</string>
     <string name="terms_termination_title">7. Terminação</string>
-    <string name="terms_liability_body">Não nos responsabilizamos por quaisquer danos resultantes da utilização do Easy Notes, incluindo danos diretos, acidentais ou consequentes.</string>
+    <string name="terms_liability_body">Não nos responsabilizamos por quaisquer danos resultantes da utilização do ZIM, incluindo danos diretos, acidentais ou consequentes.</string>
     <string name="terms_changes_title">8. Alterações aos Termos</string>
     <string name="terms_contact_title">9. Contactos</string>
     <string name="terms_privacy_title">10. Política de Privacidade</string>
@@ -142,19 +142,19 @@
     <string name="setup_password">Definir código</string>
     <string name="gallery_sync">Sincronização de Galeria</string>
     <string name="show_only_title">Mostrar apenas título</string>
-    <string name="terms_acceptance_body">Ao carregar em Aceito e utilizar o Easy Notes, está a aceitar os Termos de Serviço. Se não concorda, não utilize a aplicação.</string>
-    <string name="terms_intellectual_property_body">Todos os direitos de propriedade intelectual do Easy Notes são sua propriedade ou dos seus associados. Utilização da aplicação não confere posse de quaisquer direitos de propriedade intelectual.</string>
+    <string name="terms_acceptance_body">Ao carregar em Aceito e utilizar o ZIM, está a aceitar os Termos de Serviço. Se não concorda, não utilize a aplicação.</string>
+    <string name="terms_intellectual_property_body">Todos os direitos de propriedade intelectual do ZIM são sua propriedade ou dos seus associados. Utilização da aplicação não confere posse de quaisquer direitos de propriedade intelectual.</string>
     <string name="terms_effective_date">Data Efetiva</string>
     <string name="locked">bloqueada</string>
     <string name="pattern">Padrão</string>
     <string name="monospace_font">Fonte “monospace”</string>
     <string name="app_lock">Bloquear Aplicação</string>
-    <string name="terms_license_body">Easy Notes é distribuído sobre o **GNU General Public License (GPL) versão 3**. Isto significa:\n\n- Pode utilizar, modificar e partilhar a aplicação.\n- Se distribuir a aplicação ou uma versão modificada, deve também incluir o código fonte e reter a licença GPL.</string>
+    <string name="terms_license_body">ZIM é distribuído sobre o **GNU General Public License (GPL) versão 3**. Isto significa:\n\n- Pode utilizar, modificar e partilhar a aplicação.\n- Se distribuir a aplicação ou uma versão modificada, deve também incluir o código fonte e reter a licença GPL.</string>
     <string name="authorize_pattern">Solicitar padrão no início</string>
     <string name="lock_pattern">Insira padrão</string>
-    <string name="terms_termination_body">Podemos terminar ou suspender o seu acesso ao Easy Notes se romper as condições destes Termos. Aquando da terminação, o seu direito de utilização da aplicação cessa no imediato.</string>
-    <string name="terms_use_body">Concorda em utilizar o Easy Notes para propósitos de acordo com a lei ao aceitar os Termos. **Não** pode:\n\n- _Utilizar a aplicação para fins ilegais_\n- _Violar os direitos de terceiros_\n- _Comprometer a funcionalidade e segurança da aplicação_</string>
-    <string name="terms_disclaimer_body">O Easy Notes é fornecido \"como está\", sem qualquer garantia. Não podemos garantir que a aplicação esteja livre de erros, seja segura e não esteja sujeita a interrupções na utilização.</string>
-    <string name="terms_changes_body">Estes termos poderão ser atualizados periodicamente. A utilização do Easy Notes após estas atualizações constituem aceitação dos novos Termos.</string>
-    <string name="terms_privacy_body">O Easy Notes não recolhe quaisquer dados pessoais. Para mais informação, consulte a nossa Política de Privacidade:</string>
+    <string name="terms_termination_body">Podemos terminar ou suspender o seu acesso ao ZIM se romper as condições destes Termos. Aquando da terminação, o seu direito de utilização da aplicação cessa no imediato.</string>
+    <string name="terms_use_body">Concorda em utilizar o ZIM para propósitos de acordo com a lei ao aceitar os Termos. **Não** pode:\n\n- _Utilizar a aplicação para fins ilegais_\n- _Violar os direitos de terceiros_\n- _Comprometer a funcionalidade e segurança da aplicação_</string>
+    <string name="terms_disclaimer_body">O ZIM é fornecido \"como está\", sem qualquer garantia. Não podemos garantir que a aplicação esteja livre de erros, seja segura e não esteja sujeita a interrupções na utilização.</string>
+    <string name="terms_changes_body">Estes termos poderão ser atualizados periodicamente. A utilização do ZIM após estas atualizações constituem aceitação dos novos Termos.</string>
+    <string name="terms_privacy_body">O ZIM não recolhe quaisquer dados pessoais. Para mais informação, consulte a nossa Política de Privacidade:</string>
 </resources>

@@ -95,30 +95,30 @@
     <string name="show_only_title">僅顯示標題</string>
     <string name="show_only_title_description">僅在預覽中顯示標題</string>
     <string name="terms_acceptance_title">1. 接受條款</string>
-    <string name="terms_acceptance_body">按「同意」並使用 Easy Notes，即表示您接受這些服務條款。如果您不同意，請勿使用該應用程式。</string>
+    <string name="terms_acceptance_body">按「同意」並使用 ZIM，即表示您接受這些服務條款。如果您不同意，請勿使用該應用程式。</string>
     <string name="terms_license_title">2. 許可證</string>
-    <string name="terms_license_body">Easy Notes 根據 **GNU 通用公共授權 (GPL) 版本 3** 分發。這意味著：
+    <string name="terms_license_body">ZIM 根據 **GNU 通用公共授權 (GPL) 版本 3** 分發。這意味著：
 \n
 \n- 您可以自由使用、修改和分享該應用程式。
 \n- 如果您分發應用程式或任何修改版本，您還必須分發原始程式碼並保留 GPL 授權。</string>
     <string name="terms_use_title">3. 應用程式的使用</string>
-    <string name="terms_use_body">您同意僅出於合法目的並按照這些條款使用 Easy Notes。您不得**：
+    <string name="terms_use_body">您同意僅出於合法目的並按照這些條款使用 ZIM。您不得**：
 \n
 \n- _將應用程式用於任何非法目的_
 \n- _侵害他人權利_
 \n- _破壞應用程式的功能或安全性_</string>
     <string name="terms_intellectual_property_title">4. 智慧財產權</string>
-    <string name="terms_intellectual_property_body">Easy Notes 中的所有智慧財產權均歸我們或我們的授權人所有。您使用該應用程式並不授予您任何智慧財產權的所有權。</string>
+    <string name="terms_intellectual_property_body">ZIM 中的所有智慧財產權均歸我們或我們的授權人所有。您使用該應用程式並不授予您任何智慧財產權的所有權。</string>
     <string name="terms_disclaimer_title">5. 免責聲明</string>
     <string name="terms_liability_title">6. 責任限制</string>
-    <string name="terms_liability_body">對於您使用 Easy Notes 造成的任何損害，包括間接、偶發或後果性損害，我們不承擔任何責任。</string>
+    <string name="terms_liability_body">對於您使用 ZIM 造成的任何損害，包括間接、偶發或後果性損害，我們不承擔任何責任。</string>
     <string name="terms_termination_title">7. 限制</string>
-    <string name="terms_termination_body">如果您違反這些條款，我們可能會終止或暫停您對 Easy Notes 的存取。終止後，您使用該應用程式的權利將立即終止。</string>
+    <string name="terms_termination_body">如果您違反這些條款，我們可能會終止或暫停您對 ZIM 的存取。終止後，您使用該應用程式的權利將立即終止。</string>
     <string name="terms_changes_title">8. 條款變更</string>
     <string name="terms_contact_title">9. 聯絡我們</string>
-    <string name="terms_contact_body">如果對這些服務條款或 Easy Notes 有任何疑問，請透過以下方式與我們聯絡</string>
+    <string name="terms_contact_body">如果對這些服務條款或 ZIM 有任何疑問，請透過以下方式與我們聯絡</string>
     <string name="terms_privacy_title">10. 隱私權政策</string>
-    <string name="terms_privacy_body">Easy Notes 不會收集任何個人資料。欲了解更多信息，請參閱我們的隱私權政策</string>
+    <string name="terms_privacy_body">ZIM 不會收集任何個人資料。欲了解更多信息，請參閱我們的隱私權政策</string>
     <string name="terms_effective_date">生效日期</string>
     <string name="agree">同意</string>
     <string name="terms_of_service">服務條款</string>
@@ -129,7 +129,7 @@
     <string name="file_import_error">無法匯入</string>
     <string name="file_import_success">匯入成功</string>
     <string name="monospace_font">等寬字體</string>
-    <string name="app_name">Easy Notes</string>
+    <string name="app_name">ZIM</string>
     <string name="grid_view">網格檢視</string>
     <string name="description">內容</string>
     <string name="search">搜尋</string>
@@ -141,8 +141,8 @@
     <string name="history">歷史紀錄</string>
     <string name="minimalistic_mode_description">從編輯畫面中刪除頂部按鈕</string>
     <string name="others">其他</string>
-    <string name="terms_disclaimer_body">Easy Notes 按原樣提供，不提供任何保證。我們不保證該應用程式沒有錯誤、安全或不間斷。</string>
-    <string name="terms_changes_body">我們可能會不時更新這些服務條款。您在任何變更後繼續使用 Easy Notes 即表示您接受修訂後的條款。</string>
+    <string name="terms_disclaimer_body">ZIM 按原樣提供，不提供任何保證。我們不保證該應用程式沒有錯誤、安全或不間斷。</string>
+    <string name="terms_changes_body">我們可能會不時更新這些服務條款。您在任何變更後繼續使用 ZIM 即表示您接受修訂後的條款。</string>
     <string name="disable_swipe_edit">停用滑動</string>
     <string name="disable_swipe_edit_description">"禁止在編輯模式下滑動預覽 "</string>
     <string name="make_search_bar_longer">縮放搜尋欄寬度</string>

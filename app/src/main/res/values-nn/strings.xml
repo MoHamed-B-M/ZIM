@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Easy Notes</string>
+    <string name="app_name">ZIM</string>
     <string name="home_screen">Notat</string>
     <string name="new_note">Nytt notat</string>
     <string name="no_found_notes">Fann ingen notat.</string>

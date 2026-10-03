@@ -78,23 +78,23 @@
     <string name="support_list">기여자 목록</string>
     <string name="terms_license_title">2. 라이선스</string>
     <string name="terms_use_title">3. 애플리케이션 사용</string>
-    <string name="terms_use_body">Easy Notes를 합법적인 목적에만 사용하고, 이 이용 약관에 따를 것에 동의합니다. 다음 행위는 **금지**됩니다:
+    <string name="terms_use_body">ZIM를 합법적인 목적에만 사용하고, 이 이용 약관에 따를 것에 동의합니다. 다음 행위는 **금지**됩니다:
 \n
 \n- _앱을 불법적인 목적으로 사용하는 행위_
 \n- _타인의 권리를 침해하는 행위_
 \n- _앱의 기능이나 보안을 방해하는 행위_</string>
     <string name="terms_intellectual_property_title">4. 지적 재산권</string>
-    <string name="terms_intellectual_property_body">Easy Notes에 관한 모든 지적 재산권은 당사 또는 당사의 라이센서에게 귀속됩니다. 애플리케이션의 사용은 어떤 지적 재산권의 소유권도 부여하지 않습니다.</string>
-    <string name="terms_disclaimer_body">Easy Notes는 현 상태 그대로 제공되며, 어떠한 보증도 없습니다. 애플리케이션이 오류가 없거나 안전하거나, 중단 없이 작동할 것이라는 보장을 하지 않습니다.</string>
+    <string name="terms_intellectual_property_body">ZIM에 관한 모든 지적 재산권은 당사 또는 당사의 라이센서에게 귀속됩니다. 애플리케이션의 사용은 어떤 지적 재산권의 소유권도 부여하지 않습니다.</string>
+    <string name="terms_disclaimer_body">ZIM는 현 상태 그대로 제공되며, 어떠한 보증도 없습니다. 애플리케이션이 오류가 없거나 안전하거나, 중단 없이 작동할 것이라는 보장을 하지 않습니다.</string>
     <string name="terms_disclaimer_title">5. 보증 부인</string>
     <string name="terms_liability_title">6. 책임 제한</string>
-    <string name="terms_liability_body">Easy Notes의 사용으로 인해 발생하는 어떤 손해에 대해서도 당사는 책임을 지지 않습니다. 여기에는 간접적, 부수적, 또는 결과적인 손해가 포함됩니다.</string>
-    <string name="terms_termination_body">이용 약관을 위반한 경우, 당사는 Easy Notes에 대한 접근을 종료하거나 일시 중지할 수 있습니다. 계약 해지 시, 애플리케이션의 사용 권한은 즉시 종료됩니다.</string>
+    <string name="terms_liability_body">ZIM의 사용으로 인해 발생하는 어떤 손해에 대해서도 당사는 책임을 지지 않습니다. 여기에는 간접적, 부수적, 또는 결과적인 손해가 포함됩니다.</string>
+    <string name="terms_termination_body">이용 약관을 위반한 경우, 당사는 ZIM에 대한 접근을 종료하거나 일시 중지할 수 있습니다. 계약 해지 시, 애플리케이션의 사용 권한은 즉시 종료됩니다.</string>
     <string name="terms_termination_title">7. 계약 해지</string>
     <string name="terms_changes_title">8. 이용 약관 변경</string>
-    <string name="terms_changes_body">당사는 수시로 이 이용 약관을 갱신할 수 있습니다. 변경 후에도 Easy Notes를 계속 사용함으로써, 개정된 약관을 수락한 것으로 간주됩니다.</string>
+    <string name="terms_changes_body">당사는 수시로 이 이용 약관을 갱신할 수 있습니다. 변경 후에도 ZIM를 계속 사용함으로써, 개정된 약관을 수락한 것으로 간주됩니다.</string>
     <string name="terms_privacy_title">10. 개인정보처리방침</string>
-    <string name="terms_privacy_body">Easy Notes는 개인정보를 일체 수집하지 않습니다. 자세한 내용은 아래의 개인정보처리방침을 참조해 주시기 바랍니다</string>
+    <string name="terms_privacy_body">ZIM는 개인정보를 일체 수집하지 않습니다. 자세한 내용은 아래의 개인정보처리방침을 참조해 주시기 바랍니다</string>
     <string name="terms_effective_date">발효일</string>
     <string name="agree">동의</string>
     <string name="terms_of_service">이용 약관</string>
@@ -105,7 +105,7 @@
     <string name="file_import_description">다른 텍스트 파일을 노트로 가져오기</string>
     <string name="monospace_font_description">노트 편집 시 고정 폭 글꼴 사용</string>
     <string name="monospace_font">고정 폭 글꼴</string>
-    <string name="app_name">Easy Notes</string>
+    <string name="app_name">ZIM</string>
     <string name="grid_view">그리드 뷰</string>
     <string name="select_all">모두 선택</string>
     <string name="delete">삭제</string>
@@ -135,14 +135,14 @@
     <string name="password_continue">다음</string>
     <string name="language_description">앱 언어 번경</string>
     <string name="show_only_title_description">미리보기에서 제목만 표시</string>
-    <string name="terms_acceptance_body">\'동의\' 버튼을 눌러 Easy Notes를 사용함으로써, 이 이용 약관에 동의한 것으로 간주됩니다. 동의하지 않으실 경우, 앱을 사용하지 마십시오.</string>
-    <string name="terms_license_body">Easy Notes는 **GNU 일반 공중 사용 허가서(GPL) 버전 3** 하에 배포됩니다. 이는 다음을 의미합니다:
+    <string name="terms_acceptance_body">\'동의\' 버튼을 눌러 ZIM를 사용함으로써, 이 이용 약관에 동의한 것으로 간주됩니다. 동의하지 않으실 경우, 앱을 사용하지 마십시오.</string>
+    <string name="terms_license_body">ZIM는 **GNU 일반 공중 사용 허가서(GPL) 버전 3** 하에 배포됩니다. 이는 다음을 의미합니다:
 \n
 \n- 애플리케이션을 자유롭게 사용하고, 변경하고, 공유할 수 있습니다.
 \n- 애플리케이션이나 그 변경판을 배포할 경우, 소스 코드도 함께 배포하며, GPL 라이센스를 유지해야 합니다.</string>
     <string name="terms_acceptance_title">1. 이용 약관 수락</string>
     <string name="terms_contact_title">9. 문의 사항</string>
-    <string name="terms_contact_body">이 이용 약관이나 Easy Notes에 대해 질문이 있는 경우, 아래 연락처로 문의해 주시기 바랍니다</string>
+    <string name="terms_contact_body">이 이용 약관이나 ZIM에 대해 질문이 있는 경우, 아래 연락처로 문의해 주시기 바랍니다</string>
     <string name="alert_text">선택한 노트를 삭제하시겠습니까</string>
     <string name="yes">네</string>
     <string name="cancel">취소</string>
