@@ -5,9 +5,11 @@ updater reads the top section to show “What's new”.
 
 ## [Unreleased]
 
+- First-run walkthrough covering in-app updates and the “Install unknown apps” permission, fully skippable, and re-openable from Settings › App updates
+- Contained loading indicator while checking for and downloading updates
+- Expressive loading indicator for pull-to-refresh on the notes list
 - New note FAB menu: New Note or a To-do checklist
-- Wavy progress bars in the Updates screen
-- Pull to refresh on the notes list
+- Accepting the terms now advances instead of leaving you on that screen
 - Update installer no longer crashes on tap; reports damaged or unsigned APKs
 - Downloaded APKs are cleaned up automatically after installing
 

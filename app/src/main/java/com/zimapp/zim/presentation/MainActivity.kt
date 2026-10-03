@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import com.zimapp.zim.presentation.components.applyAppIcon
 import com.zimapp.zim.presentation.components.currentAppIcon
 import com.zimapp.zim.presentation.navigation.AppNavHost
@@ -21,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.zimapp.zim.presentation.navigation.NavRoutes
+import com.zimapp.zim.presentation.navigation.resolveStartRoute
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
 import com.zimapp.zim.presentation.theme.EasyNotesTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,6 +46,12 @@ class MainActivity : AppCompatActivity() {
         setContent {
             settingsViewModel = hiltViewModel<SettingsViewModel>()
             val noteId = intent?.getIntExtra("noteId", -1) ?: -1
+            // Resolved once: the activity needs a concrete start destination
+            // before the graph is built, and re-deriving it on every
+            // recomposition would reset the back stack.
+            val startRoute = remember(settingsViewModel, noteId) {
+                resolveStartRoute(settingsViewModel!!, noteId)
+            }
 
             // Re-apply the selected launcher icon (aliases don't survive reinstalls).
             LaunchedEffect(Unit) {
@@ -65,7 +73,7 @@ class MainActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     navController = rememberNavController()
-                    AppNavHost(settingsViewModel!!, navController, noteId, settingsViewModel!!.defaultRoute!!)
+                    AppNavHost(settingsViewModel!!, navController, noteId, startRoute)
                 }
             }
         }

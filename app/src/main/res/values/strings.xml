@@ -182,4 +182,28 @@
     <string name="support_purchase_error">Purchase error</string>
     <string name="support_foss_title">Support FOSS Development</string>
     <string name="support_foss_description">Help us keep this app free and open source. Your support enables continued development and new features.</string>
+
+    <!-- First-run onboarding -->
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_allow">Allow</string>
+    <string name="onboarding_not_now">Not now</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_revisit">Setup &amp; permissions</string>
+    <string name="onboarding_welcome_title">Welcome to ZIM</string>
+    <string name="onboarding_welcome_body">A fast, private place for the notes you actually keep. Everything stays on this device unless you turn on sync yourself.</string>
+    <string name="onboarding_welcome_bullet_local">Notes are stored locally, with no account required</string>
+    <string name="onboarding_welcome_bullet_markdown">Markdown, checklists, images and attachments render as you type</string>
+    <string name="onboarding_welcome_bullet_widget">Widgets and a quick-add button keep a note one tap away</string>
+    <string name="onboarding_updates_title">Updates in the app</string>
+    <string name="onboarding_updates_body">ZIM can check for new versions and install them from inside the app, so you never have to leave what you were doing.</string>
+    <string name="onboarding_updates_bullet_signed">Every build is signed, and ZIM refuses an APK it did not sign</string>
+    <string name="onboarding_updates_bullet_scope">The permission is used for ZIM updates and nothing else</string>
+    <string name="onboarding_updates_bullet_optional">Prefer to install manually? Grab the APK from the releases page instead</string>
+    <string name="onboarding_permission_title">Allow installing updates</string>
+    <string name="onboarding_permission_body">Android asks every app separately before it may install an APK. ZIM needs this one permission to finish an update you started yourself.</string>
+    <string name="onboarding_permission_bullet_enable">Turns on “Install unknown apps” for ZIM only</string>
+    <string name="onboarding_permission_bullet_usage">Never used to install anything without your tap</string>
+    <string name="onboarding_permission_bullet_revoke">Revoke it any time in Android settings</string>
 </resources>

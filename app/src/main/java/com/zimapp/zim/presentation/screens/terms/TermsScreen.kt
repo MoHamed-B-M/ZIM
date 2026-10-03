@@ -28,7 +28,8 @@ import com.zimapp.zim.presentation.screens.settings.settings.shapeManager
 
 @Composable
 fun TermsScreen(
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    onAgreed: () -> Unit,
 ) {
     MaterialScaffold(
         floatingActionButton = {
@@ -39,6 +40,7 @@ fun TermsScreen(
                 }
             ) {
                 settingsViewModel.update(settingsViewModel.settings.value.copy(termsOfService = true))
+                onAgreed()
             }
         },
         content = {

@@ -27,7 +27,10 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
@@ -76,7 +79,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeView (
     viewModel: HomeViewModel = hiltViewModel(),
@@ -153,6 +156,7 @@ fun HomeView (
         content = {
             var refreshing by remember { mutableStateOf(false) }
             val refreshScope = rememberCoroutineScope()
+            val pullState = rememberPullToRefreshState()
             PullToRefreshBox(
                 isRefreshing = refreshing,
                 onRefresh = {
@@ -164,6 +168,17 @@ fun HomeView (
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
+                state = pullState,
+                // The expressive contained indicator instead of the classic arc.
+                // It crossfades to the loader when the refresh actually starts,
+                // so the pulled and refreshing states read as one component.
+                indicator = {
+                    PullToRefreshDefaults.LoadingIndicator(
+                        state = pullState,
+                        isRefreshing = refreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                },
             ) {
             NoteFilter(
                 settingsViewModel = settingsModel,

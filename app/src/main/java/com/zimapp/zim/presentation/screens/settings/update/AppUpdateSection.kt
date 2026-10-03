@@ -5,15 +5,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Button
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,9 +45,22 @@ fun AppUpdateSection(vm: UpdateViewModel = hiltViewModel()) {
                 Text(r.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (s.checking) LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-            if (s.downloading) LinearWavyProgressIndicator(
-                progress = { s.progress }, modifier = Modifier.fillMaxWidth())
+            // Contained loading indicator rather than a bar: it carries its own
+            // container colour, so it reads as a status pill instead of a line
+            // that gets mistaken for a slider. It applies its own token sizing
+            // internally, so only the centring box is ours.
+            if (s.checking) Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                ContainedLoadingIndicator()
+            }
+            if (s.downloading) Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                ContainedLoadingIndicator(progress = { s.progress.coerceIn(0f, 1f) })
+            }
             when {
                 s.downloadedFile != null -> Button(onClick = vm::install, modifier = Modifier.fillMaxWidth()) {
                     Text("Install update")

@@ -12,9 +12,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import coil.util.Logger
+import com.zimapp.zim.presentation.popUpToTop
 import com.zimapp.zim.presentation.screens.settings.settings.lock.LockScreen
 import com.zimapp.zim.presentation.screens.edit.EditNoteView
 import com.zimapp.zim.presentation.screens.home.HomeView
+import com.zimapp.zim.presentation.screens.onboarding.OnboardingScreen
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
 import com.zimapp.zim.presentation.screens.terms.TermsScreen
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +53,33 @@ fun AppNavHost(settingsModel: SettingsViewModel,navController: NavHostController
 
         animatedComposable(NavRoutes.Terms.route) {
             TermsScreen(
-                settingsModel
+                settingsModel = settingsModel,
+                onAgreed = {
+                    // Terms used to leave the user stranded on this screen, since
+                    // accepting only flipped a flag nothing was watching.
+                    if (settingsModel.settings.value.onboardingComplete) {
+                        navController.navigate(NavRoutes.Home.route) { popUpToTop(navController) }
+                    } else {
+                        navController.navigate(NavRoutes.Onboarding.route) { popUpToTop(navController) }
+                    }
+                }
+            )
+        }
+
+        animatedComposable(NavRoutes.Onboarding.route) {
+            OnboardingScreen(
+                settingsViewModel = settingsModel,
+                onFinished = {
+                    when {
+                        // Launched from a widget, which expects to open a note.
+                        noteId != -1 -> activity?.finish()
+                        // Re-opened from a settings screen: dismiss and keep the
+                        // stack the user came from.
+                        navController.previousBackStackEntry?.destination?.route in settingScreens ->
+                            navController.navigateUp()
+                        else -> navController.navigate(NavRoutes.Home.route) { popUpToTop(navController) }
+                    }
+                }
             )
         }
 
@@ -113,6 +141,7 @@ suspend fun getDefaultRoute(
             val route = when {
                 settingsModel.settings.value.passcode != null -> NavRoutes.LockScreen.route
                 !settingsModel.settings.value.termsOfService -> NavRoutes.Terms.route
+                !settingsModel.settings.value.onboardingComplete -> NavRoutes.Onboarding.route
                 noteId == -1 -> NavRoutes.Home.route
                 else -> NavRoutes.Edit.createRoute(noteId, false)
             }
@@ -120,4 +149,23 @@ suspend fun getDefaultRoute(
         }
 
     return routeFlow.filterNotNull().first()
+}
+
+// Synchronous start-destination resolution for the activity. Settings are
+// loaded in the SettingsViewModel constructor, so this is safe to call
+// straight from onCreate.
+//
+// Only first-run ordering is decided here. A device with an app lock keeps its
+// existing behaviour (the view model's own default route, which onResume
+// re-applies) rather than being re-routed here.
+fun resolveStartRoute(settingsModel: SettingsViewModel, noteId: Int): String {
+    val settings = settingsModel.settings.value
+    val locked = settings.passcode != null || settings.fingerprint || settings.pattern != null
+    if (locked) return settingsModel.defaultRoute ?: NavRoutes.Home.route
+    return when {
+        !settings.termsOfService -> NavRoutes.Terms.route
+        !settings.onboardingComplete -> NavRoutes.Onboarding.route
+        noteId == -1 -> NavRoutes.Home.route
+        else -> NavRoutes.Edit.createRoute(noteId, false)
+    }
 }

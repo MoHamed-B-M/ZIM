@@ -25,6 +25,9 @@ data class Settings(
     var gallerySync: Boolean = true,
     var showOnlyTitle: Boolean = false,
     var termsOfService: Boolean = false,
+    // First-run walkthrough. Covers what the in-app updater is and why it may
+    // need “Install unknown apps”, so that grant is never a surprise later.
+    var onboardingComplete: Boolean = false,
     var useMonoSpaceFont: Boolean = false,
     var lockImmediately: Boolean = true,
     var cornerRadius: Int = 32,
