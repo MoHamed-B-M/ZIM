@@ -284,3 +284,19 @@ fun installApk(context: Context, file: File) {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
     )
 }
+
+// Auto-cleanup for updater APKs: deleting right after firing the installer
+// risks breaking installs still reading the file, so stale APKs (and failed
+// .part fragments) are swept when a new download starts and on startup.
+fun sweepUpdaterApks(dir: File, keep: File? = null): Int {
+    if (!dir.isDirectory) return 0
+    var removed = 0
+    dir.listFiles { f -> f.isFile && (f.extension == "apk" || f.name.contains(".part")) }?.forEach { f ->
+        if (f != keep && f.delete()) removed++
+    }
+    return removed
+}
+
+fun updaterDownloadDir(context: Context): File =
+    File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir, "updates")
+        .apply { mkdirs() }

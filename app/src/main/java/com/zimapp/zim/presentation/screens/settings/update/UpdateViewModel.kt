@@ -1,7 +1,6 @@
 package com.zimapp.zim.presentation.screens.settings.update
 
 import android.content.Context
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zimapp.zim.data.update.RemoteUpdate
@@ -13,11 +12,14 @@ import com.zimapp.zim.data.update.installApk
 import com.zimapp.zim.data.update.installedVersionCode
 import com.zimapp.zim.data.update.installedVersionName
 import com.zimapp.zim.data.update.openInstallPermission
+import com.zimapp.zim.data.update.sweepUpdaterApks
+import com.zimapp.zim.data.update.updaterDownloadDir
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +49,13 @@ class UpdateViewModel @Inject constructor(
     )
     val state: StateFlow<UpdateUiState> = _state.asStateFlow()
 
+    init {
+        // Sweep leftovers from previous installs on startup.
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { sweepUpdaterApks(updaterDownloadDir(appContext)) }
+        }
+    }
+
     fun setChannel(beta: Boolean) {
         _state.update { it.copy(betaChannel = beta, remote = null, error = null, downloadedFile = null) }
     }
@@ -72,8 +81,8 @@ class UpdateViewModel @Inject constructor(
         val r = _state.value.remote ?: return@launch
         _state.update { it.copy(downloading = true, progress = 0f, error = null, downloadedFile = null) }
         try {
-            val dir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                ?: error("Storage unavailable")
+            val dir = updaterDownloadDir(appContext)
+            sweepUpdaterApks(dir)
             val dest = File(dir, r.apkName)
             downloadFast(client, r.apkUrl, dest) { p ->
                 _state.update { it.copy(progress = p) }

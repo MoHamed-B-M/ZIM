@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -42,8 +42,8 @@ fun AppUpdateSection(vm: UpdateViewModel = hiltViewModel()) {
                 Text(r.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (s.checking) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            if (s.downloading) LinearProgressIndicator(
+            if (s.checking) ContainedLoadingIndicator(modifier = Modifier.fillMaxWidth())
+            if (s.downloading) ContainedLoadingIndicator(
                 progress = { s.progress }, modifier = Modifier.fillMaxWidth())
             when {
                 s.downloadedFile != null -> Button(onClick = vm::install, modifier = Modifier.fillMaxWidth()) {
