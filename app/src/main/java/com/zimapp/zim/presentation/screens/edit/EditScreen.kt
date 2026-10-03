@@ -98,12 +98,14 @@ fun EditNoteView(
     id: Int,
     settingsViewModel: SettingsViewModel,
     encrypted: Boolean = false,
+    kind: String = "",
     isWidget: Boolean = false,
     onClickBack: () -> Unit
 ) {
     val viewModel: EditViewModel = hiltViewModel<EditViewModel>()
     viewModel.updateIsEncrypted(encrypted)
     viewModel.setupNoteData(id)
+    viewModel.applyTemplate(kind)
     ObserveLifecycleEvents(viewModel)
 
     val pagerState = rememberPagerState(initialPage = if (id == 0 || isWidget || settingsViewModel.settings.value.editMode) 0 else 1, pageCount = { 2 })

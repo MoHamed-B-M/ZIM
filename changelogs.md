@@ -5,6 +5,12 @@ updater reads the top section to show “What's new”.
 
 ## [Unreleased]
 
+- New note FAB menu: New Note or a To-do checklist
+- Wavy progress bars in the Updates screen
+- Pull to refresh on the notes list
+- Update installer no longer crashes on tap; reports damaged or unsigned APKs
+- Downloaded APKs are cleaned up automatically after installing
+
 ## [1.0.0]
 
 - Notes, checklists, tags, pins, archive and trash (30-day auto-purge)

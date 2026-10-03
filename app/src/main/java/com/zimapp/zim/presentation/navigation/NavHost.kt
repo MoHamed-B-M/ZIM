@@ -36,11 +36,12 @@ fun AppNavHost(settingsModel: SettingsViewModel,navController: NavHostController
         animatedComposable(NavRoutes.Home.route) {
             HomeView(
                 onSettingsClicked = { navController.navigate(NavRoutes.Settings.route) },
-                onNoteClicked = { id, encrypted ->
+                onNoteClicked = { id, encrypted, kind ->
                     navController.navigate(
                         NavRoutes.Edit.createRoute(
                             id,
-                            encrypted
+                            encrypted,
+                            kind
                         )
                     )
                 },
@@ -73,10 +74,12 @@ fun AppNavHost(settingsModel: SettingsViewModel,navController: NavHostController
         animatedComposable(NavRoutes.Edit.route) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
             val encrypted = backStackEntry.arguments?.getString("encrypted").toBoolean()
+            val kind = backStackEntry.arguments?.getString("kind").orEmpty()
             EditNoteView(
                 settingsViewModel = settingsModel,
                 id = if (noteId == -1) id else noteId,
                 encrypted = encrypted,
+                kind = if (noteId == -1) kind else "",
                 isWidget = noteId != -1
             ) {
                 if (noteId == -1) {

@@ -10,14 +10,22 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
@@ -36,7 +44,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -45,7 +55,6 @@ import com.zimapp.zim.R
 import com.zimapp.zim.domain.model.Note
 import com.zimapp.zim.presentation.components.CloseButton
 import com.zimapp.zim.presentation.components.DeleteButton
-import com.zimapp.zim.presentation.components.NotesButton
 import com.zimapp.zim.presentation.components.material.MaterialScaffold
 import com.zimapp.zim.presentation.components.material.MaterialButton
 import com.zimapp.zim.presentation.components.PinButton
@@ -55,6 +64,7 @@ import com.zimapp.zim.presentation.components.TitleText
 import com.zimapp.zim.presentation.components.VaultButton
 import com.zimapp.zim.presentation.components.defaultScreenEnterAnimation
 import com.zimapp.zim.presentation.components.defaultScreenExitAnimation
+import com.zimapp.zim.presentation.screens.edit.model.TEMPLATE_TODO
 import com.zimapp.zim.presentation.screens.home.viewmodel.HomeViewModel
 import com.zimapp.zim.presentation.screens.home.widgets.NoteFilter
 import com.zimapp.zim.presentation.screens.settings.model.SettingsViewModel
@@ -72,7 +82,7 @@ fun HomeView (
     viewModel: HomeViewModel = hiltViewModel(),
     settingsModel: SettingsViewModel,
     onSettingsClicked: () -> Unit,
-    onNoteClicked: (Int, Boolean) -> Unit
+    onNoteClicked: (Int, Boolean, String) -> Unit
 ) {
     val context = LocalContext.current
     if (viewModel.isPasswordPromptVisible.value) {
@@ -95,7 +105,12 @@ fun HomeView (
     if (settingsModel.databaseUpdate.value) viewModel.noteUseCase.observe()
     val containerColor = getContainerColor(settingsModel)
     MaterialScaffold(
-        floatingActionButton = { NewNoteButton { onNoteClicked(it, viewModel.isVaultMode.value) } },
+        floatingActionButton = {
+            NewNoteMenu(
+                onNewNote = { onNoteClicked(0, viewModel.isVaultMode.value, "") },
+                onNewToDo = { onNoteClicked(0, viewModel.isVaultMode.value, TEMPLATE_TODO) },
+            )
+        },
         topBar = {
             AnimatedVisibility(
                 visible = viewModel.selectedNotes.isNotEmpty(),
@@ -157,7 +172,7 @@ fun HomeView (
                     radius = settingsModel.settings.value.cornerRadius / 2,
                     isBoth = true
                 ),
-                onNoteClicked = { onNoteClicked(it, viewModel.isVaultMode.value)  },
+                onNoteClicked = { onNoteClicked(it, viewModel.isVaultMode.value, "")  },
                 notes = viewModel.getAllNotes().sortedWith(sorter(settingsModel.settings.value.sortDescending)),
                 selectedNotes = viewModel.selectedNotes,
                 viewMode = settingsModel.settings.value.viewMode,
@@ -179,11 +194,72 @@ fun getContainerColor(settingsModel: SettingsViewModel): Color {
     return if (settingsModel.settings.value.extremeAmoledMode) Color.Black else MaterialTheme.colorScheme.surfaceContainer
 }
 
+// M3 FAB menu: a collapsed FAB that expands into labelled actions. Kept as
+// an AnimatedVisibility pair rather than a modal menu so the labels stay
+// readable and the whole thing composes without extra dependencies.
 @Composable
-private fun NewNoteButton(onNoteClicked: (Int) -> Unit) {
-    NotesButton(text = stringResource(R.string.new_note)) {
-        onNoteClicked(0)
+private fun NewNoteMenu(
+    onNewNote: () -> Unit,
+    onNewToDo: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.imePadding(),
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + scaleIn(initialScale = 0.6f),
+            exit = fadeOut() + scaleOut(targetScale = 0.6f),
+        ) {
+            NewNoteMenuItem(
+                icon = Icons.Rounded.CheckBox,
+                label = stringResource(R.string.new_todo),
+                onClick = onNewToDo,
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + scaleIn(initialScale = 0.6f),
+            exit = fadeOut() + scaleOut(targetScale = 0.6f),
+        ) {
+            NewNoteMenuItem(
+                icon = Icons.Rounded.Edit,
+                label = stringResource(R.string.new_note),
+                onClick = onNewNote,
+            )
+        }
+        ExtendedFloatingActionButton(
+            onClick = { expanded = !expanded },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            icon = { Icon(if (expanded) Icons.Rounded.Close else Icons.Rounded.Add, null) },
+            text = {
+                Text(
+                    text = stringResource(if (expanded) R.string.cancel else R.string.new_note)
+                )
+            },
+        )
     }
+}
+
+@Composable
+private fun NewNoteMenuItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        icon = { Icon(icon, null) },
+        text = { Text(text = label) },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

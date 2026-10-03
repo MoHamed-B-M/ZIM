@@ -12,7 +12,6 @@ import com.zimapp.zim.presentation.screens.settings.settings.MarkdownScreen
 import com.zimapp.zim.presentation.screens.settings.settings.PrivacyScreen
 import com.zimapp.zim.presentation.screens.settings.settings.ToolsScreen
 import com.zimapp.zim.presentation.screens.settings.updates.UpdatesScreen
-import com.zimapp.zim.presentation.screens.settings.updates.UpdatesScreen
 
 enum class ActionType {
     PASSCODE,
@@ -22,8 +21,9 @@ enum class ActionType {
 
 sealed class NavRoutes(val route: String) {
     data object Home : NavRoutes("home")
-    data object Edit : NavRoutes("edit/{id}/{encrypted}") {
-        fun createRoute(id: Int, encrypted : Boolean) = "edit/$id/$encrypted"
+    data object Edit : NavRoutes("edit/{id}/{encrypted}/{kind}") {
+        // kind: "" for a plain note, "todo" to seed the editor with a checklist.
+    fun createRoute(id: Int, encrypted : Boolean, kind: String = "") = "edit/$id/$encrypted/$kind"
     }
     data object Terms : NavRoutes("terms")
     data object Settings : NavRoutes("settings")

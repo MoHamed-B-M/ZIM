@@ -95,29 +95,40 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
+    // Every step is guarded: the signature check parses the whole APK (disk I/O
+    // and a known thrower on malformed files) and the installer hand-off can
+    // fail on ROMs without a package installer. A crash here loses the whole
+    // app, so failures always surface as state instead of propagating.
     fun install() {
         val file = _state.value.downloadedFile ?: return
-        if (!canUpdateOverInstalled(appContext, file)) {
-            _state.update {
-                it.copy(message = "Different signature — uninstall the current version first (export your notes first)")
+        viewModelScope.launch(Dispatchers.IO) {
+            val signatureCheck = runCatching { canUpdateOverInstalled(appContext, file) }
+            if (signatureCheck.isFailure || signatureCheck.getOrNull() == false) {
+                _state.update {
+                    it.copy(
+                        message = if (signatureCheck.isFailure)
+                            "Downloaded file is damaged — download the update again"
+                        else "Different signature — uninstall the current version first (export your notes first)"
+                    )
+                }
+                return@launch
             }
-            return
-        }
-        if (!canInstallUnknown(appContext)) {
-            val opened = runCatching {
-                openInstallPermission(appContext)
-                true
-            }.getOrDefault(false)
-            _state.update {
-                it.copy(
-                    message = if (opened) "Allow “Install unknown apps”, then tap Install again"
-                    else "Cannot open install settings on this device",
-                )
+            if (!canInstallUnknown(appContext)) {
+                val opened = runCatching {
+                    openInstallPermission(appContext)
+                    true
+                }.getOrDefault(false)
+                _state.update {
+                    it.copy(
+                        message = if (opened) "Allow “Install unknown apps”, then tap Install again"
+                        else "Cannot open install settings on this device",
+                    )
+                }
+                return@launch
             }
-            return
-        }
-        runCatching { installApk(appContext, file) }.onFailure { e ->
-            _state.update { it.copy(error = "Could not start installer: ${e.message}") }
+            runCatching { installApk(appContext, file) }.onFailure { e ->
+                _state.update { it.copy(error = "Could not start installer: ${e.message}") }
+            }
         }
     }
 }

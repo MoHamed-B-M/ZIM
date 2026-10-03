@@ -6,8 +6,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -21,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 // In-app updater: beta channel reads the beta-latest prerelease, stable reads
 // the latest finished release. Multi-connection download, install via
 // FileProvider (needs “Install unknown apps” once).
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppUpdateSection(vm: UpdateViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
@@ -42,8 +43,8 @@ fun AppUpdateSection(vm: UpdateViewModel = hiltViewModel()) {
                 Text(r.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (s.checking) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            if (s.downloading) LinearProgressIndicator(
+            if (s.checking) LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+            if (s.downloading) LinearWavyProgressIndicator(
                 progress = { s.progress }, modifier = Modifier.fillMaxWidth())
             when {
                 s.downloadedFile != null -> Button(onClick = vm::install, modifier = Modifier.fillMaxWidth()) {

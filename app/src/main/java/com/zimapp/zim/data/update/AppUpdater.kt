@@ -1,5 +1,6 @@
 package com.zimapp.zim.data.update
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,8 +26,10 @@ const val UPDATE_OWNER = "MoHamed-B-M"
 const val UPDATE_REPO = "ZIM"
 // Rolling beta prerelease tag maintained by build.yaml.
 const val BETA_TAG = "beta-latest"
-// Must mirror the workflow's BETA_CODE_OFFSET so beta codes compare correctly.
+// Must mirror the workflow's BETA_CODE_OFFSET so beta codes compare meaningfully.
 const val BETA_CODE_OFFSET = 100000
+// Smallest plausible APK; anything under this is a truncated/failed download.
+const val MIN_APK_BYTES = 1_048_576L
 // Rendered by raw.githubusercontent; the updater reads its top section.
 const val CHANGELOG_URL = "https://raw.githubusercontent.com/MoHamed-B-M/ZIM/beta/changelogs.md"
 
@@ -247,25 +250,31 @@ private suspend fun streamRange(
 fun canInstallUnknown(context: Context): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
 
-// SHA-256 of the signing certs, or null when unreadable (API < 28).
+// SHA-256 of the signing certs, or null when unreadable (API < 28, or an
+// archive the platform refuses to parse).
 private fun signerDigests(context: Context, archivePath: String? = null): List<String>? {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
-    val info = if (archivePath == null) {
-        context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-    } else {
-        context.packageManager.getPackageArchiveInfo(archivePath, PackageManager.GET_SIGNING_CERTIFICATES)
-            ?: return null
-    }
-    val signers = info.signingInfo?.apkContentsSigners ?: return null
-    val md = MessageDigest.getInstance("SHA-256")
-    return signers.map { md.digest(it.toByteArray()).joinToString(":") { b -> "%02X".format(b) } }
+    return runCatching {
+        val info = if (archivePath == null) {
+            context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+        } else {
+            context.packageManager.getPackageArchiveInfo(archivePath, PackageManager.GET_SIGNING_CERTIFICATES)
+                ?: return@runCatching null
+        }
+        val signers = info.signingInfo?.apkContentsSigners ?: return@runCatching null
+        val md = MessageDigest.getInstance("SHA-256")
+        signers.map { md.digest(it.toByteArray()).joinToString(":") { b -> "%02X".format(b) } }
+    }.getOrNull()
 }
 
 // True when the APK can install over the current app. Catches the
 // INSTALL_FAILED_UPDATE_INCOMPATIBLE case before the system installer fails.
+// Throws when the archive cannot be parsed at all, so callers can tell a
+// corrupt download apart from a signature mismatch.
 fun canUpdateOverInstalled(context: Context, apkFile: File): Boolean {
+    val next = signerDigests(context, apkFile.absolutePath)
+        ?: error("Downloaded APK could not be read")
     val current = signerDigests(context) ?: return true
-    val next = signerDigests(context, apkFile.absolutePath) ?: return true
     return current.toSet() == next.toSet()
 }
 
@@ -276,13 +285,21 @@ fun openInstallPermission(context: Context) {
     )
 }
 
+private const val APK_MIME = "application/vnd.android.package-archive"
+
 fun installApk(context: Context, file: File) {
+    if (!file.isFile || file.length() < MIN_APK_BYTES) error("APK is missing or incomplete")
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    context.startActivity(
-        Intent(Intent.ACTION_VIEW)
-            .setDataAndType(uri, "application/vnd.android.package-archive")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    )
+    val intent = Intent(Intent.ACTION_VIEW)
+        .setDataAndType(uri, APK_MIME)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    // Some installers read the permission grant from clipData rather than the
+    // data URI. No resolveActivity check here: package visibility filtering on
+    // Android 11+ hides the system installer from queries, so a null result
+    // would be a false negative. A missing installer surfaces as
+    // ActivityNotFoundException, which the caller already turns into a message.
+    intent.clipData = ClipData.newRawUri("zim-update", uri)
+    context.startActivity(intent)
 }
 
 // Auto-cleanup for updater APKs: deleting right after firing the installer

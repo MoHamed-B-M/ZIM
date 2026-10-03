@@ -18,6 +18,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// Nav argument values that seed a new note's body.
+const val TEMPLATE_TODO = "todo"
+// Markdown checkboxes. Must start with "[ ] " — the checkbox processor
+// anchors at the line start, and ListItemProcessor would swallow a "- "
+// prefix before it ever ran.
+private const val TODO_TEMPLATE = "[ ] \n[ ] \n[ ] "
+
 @HiltViewModel
 class EditViewModel @Inject constructor(
     private val noteUseCase: NoteUseCase,
@@ -104,6 +111,20 @@ class EditViewModel @Inject constructor(
             }
         }
     }
+
+    // Seeds a brand new (unsaved) note with a starting point. Guarded so it
+    // never overwrites typed content and never fires while editing an existing
+    // note. "todo" is the only template today.
+    fun applyTemplate(kind: String) {
+        if (kind != TEMPLATE_TODO || noteId.value != 0 || templated) return
+        templated = true
+        if (noteDescription.value.text.isBlank()) {
+            _noteDescription.value = TextFieldValue(TODO_TEMPLATE, TextRange(TODO_TEMPLATE.length))
+        }
+    }
+
+    // Set once a template has been applied, so recomposition cannot re-seed.
+    private var templated = false
 
     private fun fetchLastNoteAndUpdate() {
         if (noteName.value.text.isNotEmpty() || noteDescription.value.text.isNotBlank()) {
