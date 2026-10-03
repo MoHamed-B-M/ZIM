@@ -16,6 +16,10 @@ activityCompose = "1.10.1"
 coreKtx = "1.16.0"
 coreSplashscreen = "1.0.1"
 compose = "1.8.3"
+# Icons-extended was discontinued after 1.7.8 (no 1.8.x/1.9.x published), so it
+# cannot track the compose version. Pinned separately; it stays runtime-
+# compatible with the newer foundation/ui it resolves against.
+composeIcons = "1.7.8"
 material3 = "1.5.0-alpha13"
 navigationCompose = "2.9.2"
 appcompat = "1.7.1"
@@ -38,7 +42,7 @@ androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscree
 
 # Compose
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeIcons" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 
