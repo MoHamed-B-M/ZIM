@@ -247,8 +247,17 @@ private suspend fun streamRange(
     }
 }
 
-fun canInstallUnknown(context: Context): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
+// PackageManager.canRequestPackageInstalls() throws SecurityException instead of
+// returning false when REQUEST_INSTALL_PACKAGES is not declared, and some ROMs
+// refuse the query outright. This is a "has the user granted it yet?" check that
+// runs inside composition and inside install(), so an answer we cannot get must
+// never propagate: it reads as "not granted", which is also what leaves the
+// updater's own permission prompt in play.
+fun canInstallUnknown(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+    return runCatching { context.packageManager.canRequestPackageInstalls() }
+        .getOrDefault(false)
+}
 
 // SHA-256 of the signing certs, or null when unreadable (API < 28, or an
 // archive the platform refuses to parse).
