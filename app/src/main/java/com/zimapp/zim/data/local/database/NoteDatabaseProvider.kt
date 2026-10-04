@@ -24,7 +24,7 @@ class NoteDatabaseProvider(private val application: Application) {
         return Room.databaseBuilder(application.applicationContext,
             NoteDatabase::class.java,
             DatabaseConst.NOTES_DATABASE_FILE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_2_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_2_4, MIGRATION_4_5)
             .build()
     }
 
@@ -63,5 +63,14 @@ private val MIGRATION_2_4 = object : Migration(2, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `notes-table` ADD COLUMN `pinned` INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE `notes-table` ADD COLUMN `encrypted` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+// Nullable with no default, which is what Room expects for audioPath: rows that
+// predate voice notes come back as null instead of as an empty string that
+// would look like a broken recording.
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `notes-table` ADD COLUMN `audio_path` TEXT")
     }
 }

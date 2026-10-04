@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Button
-import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -36,24 +36,22 @@ fun AppUpdateSection(vm: UpdateViewModel = hiltViewModel()) {
             FilterChip(selected = s.betaChannel, onClick = { vm.setChannel(true) }, label = { Text("Beta") })
         }
         s.message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        // The wave lives inside the button rather than below it, so the label
+        // and the progress share one control and the row cannot jump height
+        // when the check starts. The button is disabled throughout, which is
+        // what keeps a second check from being fired mid-request.
         OutlinedButton(onClick = vm::check, enabled = !s.checking, modifier = Modifier.fillMaxWidth()) {
-            Text(if (s.checking) "Checking…" else "Check for updates")
+            if (s.checking) {
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                Text("Check for updates")
+            }
         }
         s.remote?.let { r ->
             Text("${r.title} · ${r.publishedAt}", style = MaterialTheme.typography.bodyMedium)
             if (r.notes.isNotBlank()) {
                 Text(r.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // Contained loading indicator rather than a bar: it carries its own
-            // container colour, so it reads as a status pill instead of a line
-            // that gets mistaken for a slider. It applies its own token sizing
-            // internally, so only the centring box is ours.
-            if (s.checking) Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                ContainedLoadingIndicator()
             }
             if (s.downloading) Box(
                 modifier = Modifier.fillMaxWidth(),

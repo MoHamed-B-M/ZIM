@@ -1,8 +1,10 @@
 package com.zimapp.zim.presentation.screens.edit
 
+import android.Manifest
 import android.icu.text.SimpleDateFormat
 import android.content.ClipData
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -29,14 +32,19 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Numbers
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.RemoveRedEye
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,10 +52,12 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ContentInfoCompat
 import androidx.core.view.ViewCompat
 import androidx.compose.ui.Alignment
@@ -73,6 +83,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.zimapp.zim.R
 import com.zimapp.zim.presentation.components.MoreButton
 import com.zimapp.zim.presentation.components.NavigationIcon
+import com.zimapp.zim.presentation.components.shareNote
 import com.zimapp.zim.presentation.components.material.MaterialScaffold
 import com.zimapp.zim.presentation.components.RedoButton
 import com.zimapp.zim.presentation.components.SaveButton
@@ -185,6 +196,32 @@ fun TopBarActions(pagerState: PagerState, onClickBack: () -> Unit, viewModel: Ed
                             viewModel.toggleNoteInfoVisibility(true)
                         }
                     )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.share)) },
+                        leadingIcon = { Icon(Icons.Rounded.Share, contentDescription = "Share")},
+                        colors = menuItemColors(),
+                        onClick = {
+                            // Dismissing first: the chooser is its own window,
+                            // and leaving this menu open under it reads as two
+                            // competing layers of UI.
+                            viewModel.toggleEditMenuVisibility(false)
+                            // Title and body, so a shared note is identifiable
+                            // in the target app rather than an anonymous body.
+                            val title = viewModel.noteName.value.text
+                            val body = viewModel.noteDescription.value.text
+                            shareNote(
+                                context = context,
+                                text = buildString {
+                                    if (title.isNotBlank()) append(title)
+                                    if (body.isNotBlank()) {
+                                        if (isNotEmpty()) append("\n\n")
+                                        append(body)
+                                    }
+                                },
+                                audioPath = viewModel.audioPath.value,
+                            )
+                        }
+                    )
                 }
             }
         }
@@ -224,12 +261,97 @@ fun TopBar(pagerState: PagerState,coroutineScope: CoroutineScope, onClickBack: (
     )
 }
 
+// Recorder controls for a voice note. Deliberately not a gate: the note saves
+// with or without a recording, so declining the microphone permission costs
+// the user nothing but the audio.
+@Composable
+private fun AudioNoteBar(viewModel: EditViewModel) {
+    val context = LocalContext.current
+    val hasAudio = viewModel.audioPath.value != null
+    val isRecording = viewModel.isRecording.value
+    val isPlaying = viewModel.isPlayingAudio.value
+
+    // Asked on each composition rather than cached: the permission can be
+    // revoked from system settings while the editor stays open, and
+    // checkSelfPermission is a cheap binder read.
+    val micGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+        PackageManager.PERMISSION_GRANTED
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        // Only start once granted, and never on a denial: the note is still a
+        // perfectly good text note without audio.
+        if (granted) viewModel.startRecording()
+    }
+
+    // Nothing to show until the note is an audio note, has a recording, or is
+    // mid-take.
+    if (!hasAudio && !isRecording && !viewModel.audioRequested.value) return
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        IconButton(
+            onClick = {
+                when {
+                    isRecording -> viewModel.stopRecording()
+                    micGranted -> viewModel.startRecording()
+                    else -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            }
+        ) {
+            Icon(
+                imageVector = if (isRecording) Icons.Rounded.Stop else Icons.Rounded.Mic,
+                contentDescription = stringResource(
+                    if (isRecording) R.string.stop_recording else R.string.record_audio
+                ),
+                tint = if (isRecording) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.primary,
+            )
+        }
+        Text(
+            text = stringResource(
+                when {
+                    isRecording -> R.string.recording
+                    hasAudio -> R.string.audio_recorded
+                    else -> R.string.tap_to_record
+                }
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        // Play and delete only mean something once a clip exists.
+        if (hasAudio) {
+            IconButton(onClick = { viewModel.toggleAudioPlayback() }) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                    contentDescription = stringResource(
+                        if (isPlaying) R.string.stop_playback else R.string.play_audio
+                    ),
+                )
+            }
+            IconButton(onClick = { viewModel.deleteAudio() }) {
+                Icon(
+                    imageVector = Icons.Rounded.Delete,
+                    contentDescription = stringResource(R.string.delete_audio),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun ObserveLifecycleEvents(viewModel: EditViewModel) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            // Stop before saving: the note on disk has to describe a finished
+            // recording, and onCleared() only runs once the screen is gone.
             if (event == Lifecycle.Event.ON_STOP) {
+                if (viewModel.isRecording.value) viewModel.stopRecording()
                 viewModel.saveNote(viewModel.noteId.value)
             }
         }
@@ -393,6 +515,9 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
             .fillMaxSize()
             .padding(16.dp, 16.dp, 16.dp, if (viewModel.isDescriptionInFocus.value && settingsViewModel.settings.value.isMarkdownEnabled) 2.dp else 16.dp)
     ) {
+        // Above the title so a voice note's controls sit with the note's
+        // identity rather than being buried under the body text.
+        AudioNoteBar(viewModel)
         MarkdownBox(
             isExtremeAmoled = settingsViewModel.settings.value.extremeAmoledMode,
             shape = shapeManager(radius = settingsViewModel.settings.value.cornerRadius, isFirst = true),
@@ -405,7 +530,6 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                     isExtremeAmoled = settingsViewModel.settings.value.extremeAmoledMode,
                     onClickBack = { onClickBack() }
                 ) {
-                    println(settingsViewModel.settings.value.useMonoSpaceFont)
                     CustomTextField(
                         value = viewModel.noteName.value,
                         modifier = Modifier.weight(1f),

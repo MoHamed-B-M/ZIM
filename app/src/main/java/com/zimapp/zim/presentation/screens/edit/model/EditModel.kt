@@ -6,20 +6,29 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zimapp.zim.data.audio.AudioPlayer
+import com.zimapp.zim.data.audio.AudioRecorder
+import com.zimapp.zim.data.audio.deleteAudioFile
 import com.zimapp.zim.domain.model.Note
 import com.zimapp.zim.domain.usecase.NoteUseCase
 import com.zimapp.zim.presentation.components.DecryptionResult
 import com.zimapp.zim.presentation.components.EncryptionHelper
 import com.zimapp.zim.presentation.screens.edit.components.UndoRedoState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 // Nav argument values that seed a new note's body.
 const val TEMPLATE_TODO = "todo"
+// Opens the editor with the recorder already showing, for a note whose point
+// is the recording rather than the text.
+const val TEMPLATE_AUDIO = "audio"
 // Markdown checkboxes. Must start with "[ ] " — the checkbox processor
 // anchors at the line start, and ListItemProcessor would swallow a "- "
 // prefix before it ever ran.
@@ -28,7 +37,10 @@ private const val TODO_TEMPLATE = "[ ] \n[ ] \n[ ] "
 @HiltViewModel
 class EditViewModel @Inject constructor(
     private val noteUseCase: NoteUseCase,
-    private val encryption: EncryptionHelper
+    private val encryption: EncryptionHelper,
+    // Application context only: the recorder outlives no screen, and holding
+    // an Activity here would leak it across configuration changes.
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val _noteName = mutableStateOf(TextFieldValue())
     val noteName: State<TextFieldValue> get() = _noteName
@@ -57,10 +69,39 @@ class EditViewModel @Inject constructor(
     private val _isPinned = mutableStateOf(false)
     val isPinned: State<Boolean> get() = _isPinned
 
+    // Voice note state. audioPath is null until a recording finishes, and
+    // survives a recomposition but not the process, which is deliberate: a
+    // half-finished recording should not be resurrected from a stale path.
+    private val _audioPath = mutableStateOf<String?>(null)
+    val audioPath: State<String?> get() = _audioPath
+
+    private val _isRecording = mutableStateOf(false)
+    val isRecording: State<Boolean> get() = _isRecording
+
+    private val _isPlayingAudio = mutableStateOf(false)
+    val isPlayingAudio: State<Boolean> get() = _isPlayingAudio
+
+    // True when the note was opened from the audio FAB, so the recorder shows
+    // itself instead of waiting to be asked for.
+    private val _audioRequested = mutableStateOf(false)
+    val audioRequested: State<Boolean> get() = _audioRequested
+
+    private val recorder = AudioRecorder(appContext)
+    private val player = AudioPlayer().apply {
+        onFinished = { _isPlayingAudio.value = false }
+    }
+
     private val undoRedoState = UndoRedoState()
 
+    private fun hasContent(): Boolean =
+        noteName.value.text.isNotEmpty() ||
+            noteDescription.value.text.isNotBlank() ||
+            audioPath.value != null
+
+    // An audio-only note has no text at all, so the emptiness check has to
+    // count the recording or "new audio note" would save nothing.
     fun saveNote(id: Int) {
-        if (noteName.value.text.isNotEmpty() || noteDescription.value.text.isNotBlank()) {
+        if (hasContent()) {
             viewModelScope.launch {
                 noteUseCase.addNote(
                     Note(
@@ -69,6 +110,7 @@ class EditViewModel @Inject constructor(
                         description = noteDescription.value.text,
                         pinned = isPinned.value,
                         encrypted = isEncrypted.value,
+                        audioPath = audioPath.value,
                         createdAt = if (noteCreatedTime.value != 0L) noteCreatedTime.value else System.currentTimeMillis(),
                     )
                 )
@@ -79,6 +121,9 @@ class EditViewModel @Inject constructor(
     }
 
     fun deleteNote(id: Int) {
+        // Remove the file too: nothing else references it, and leaving it
+        // behind would grow the app's data directory without bound.
+        deleteAudioFile(audioPath.value)
         noteUseCase.deleteNoteById(id = id)
     }
 
@@ -98,6 +143,11 @@ class EditViewModel @Inject constructor(
         updateNoteId(note.id)
         updateNotePin(note.pinned)
         updateIsEncrypted(note.encrypted)
+        // Stop anything in flight first, so reopening a note never leaves the
+        // previous clip playing over the new one.
+        player.stop()
+        _isPlayingAudio.value = false
+        _audioPath.value = note.audioPath
     }
 
     fun setupNoteData(id : Int = noteId.value) {
@@ -114,20 +164,81 @@ class EditViewModel @Inject constructor(
 
     // Seeds a brand new (unsaved) note with a starting point. Guarded so it
     // never overwrites typed content and never fires while editing an existing
-    // note. "todo" is the only template today.
+    // note. Called from composition, so it must stay idempotent: the `templated`
+    // latch is what stops recomposition from re-seeding an already-open note.
     fun applyTemplate(kind: String) {
-        if (kind != TEMPLATE_TODO || noteId.value != 0 || templated) return
+        if (noteId.value != 0 || templated) return
         templated = true
-        if (noteDescription.value.text.isBlank()) {
-            _noteDescription.value = TextFieldValue(TODO_TEMPLATE, TextRange(TODO_TEMPLATE.length))
+        when (kind) {
+            TEMPLATE_TODO -> if (noteDescription.value.text.isBlank()) {
+                _noteDescription.value = TextFieldValue(TODO_TEMPLATE, TextRange(TODO_TEMPLATE.length))
+            }
+            // No text to seed: the template's job is to reveal the recorder.
+            TEMPLATE_AUDIO -> _audioRequested.value = true
         }
+    }
+
+    // --- Voice notes -------------------------------------------------------
+    // Recording is opt-in and never starts on its own: the microphone opens
+    // only when the user taps the mic.
+
+    fun startRecording(): Boolean {
+        if (_isRecording.value) return false
+        val ok = recorder.start()
+        _isRecording.value = ok
+        return ok
+    }
+
+    fun stopRecording() {
+        val file = recorder.stop()
+        _isRecording.value = false
+        if (file == null) return
+        // Replacing a clip: the old one is ours to delete, otherwise every
+        // re-record would leave an orphan behind.
+        deleteAudioFile(audioPath.value)
+        audioPath.value = file.absolutePath
+    }
+
+    fun toggleAudioPlayback(): Boolean {
+        val path = audioPath.value ?: return false
+        val file = File(path)
+        // The file can vanish under us (cleared storage, a failed migration
+        // path); drop the reference rather than offer a dead play button.
+        if (!file.isFile) {
+            audioPath.value = null
+            return false
+        }
+        val playing = player.toggle(file)
+        _isPlayingAudio.value = playing
+        return playing
+    }
+
+    fun deleteAudio() {
+        player.stop()
+        _isPlayingAudio.value = false
+        deleteAudioFile(audioPath.value)
+        audioPath.value = null
+    }
+
+    // Leaving the editor mid-take: stop and throw the partial file away, so a
+    // half-sentence never becomes the note's audio.
+    fun cancelRecording() {
+        if (!_isRecording.value) return
+        recorder.cancel()
+        _isRecording.value = false
+    }
+
+    override fun onCleared() {
+        cancelRecording()
+        player.stop()
+        super.onCleared()
     }
 
     // Set once a template has been applied, so recomposition cannot re-seed.
     private var templated = false
 
     private fun fetchLastNoteAndUpdate() {
-        if (noteName.value.text.isNotEmpty() || noteDescription.value.text.isNotBlank()) {
+        if (hasContent()) {
             if (noteId.value == 0) {
                 viewModelScope.launch {
                     noteUseCase.getLastNoteId { lastId ->

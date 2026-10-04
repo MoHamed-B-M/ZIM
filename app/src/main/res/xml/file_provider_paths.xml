@@ -2,4 +2,7 @@
 <paths>
     <!-- Updater APKs downloaded via OkHttp into app external files. -->
     <external-files-path name="downloads" path="Download/" />
+    <!-- Voice notes, so sharing can hand the receiving app a readable URI.
+         The grant is per-share and the files stay in app-private storage. -->
+    <files-path name="audio" path="audio/" />
 </paths>
