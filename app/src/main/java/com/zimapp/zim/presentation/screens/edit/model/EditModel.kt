@@ -196,7 +196,7 @@ class EditViewModel @Inject constructor(
         // Replacing a clip: the old one is ours to delete, otherwise every
         // re-record would leave an orphan behind.
         deleteAudioFile(audioPath.value)
-        audioPath.value = file.absolutePath
+        _audioPath.value = file.absolutePath
     }
 
     fun toggleAudioPlayback(): Boolean {
@@ -205,7 +205,7 @@ class EditViewModel @Inject constructor(
         // The file can vanish under us (cleared storage, a failed migration
         // path); drop the reference rather than offer a dead play button.
         if (!file.isFile) {
-            audioPath.value = null
+            _audioPath.value = null
             return false
         }
         val playing = player.toggle(file)
@@ -217,7 +217,7 @@ class EditViewModel @Inject constructor(
         player.stop()
         _isPlayingAudio.value = false
         deleteAudioFile(audioPath.value)
-        audioPath.value = null
+        _audioPath.value = null
     }
 
     // Leaving the editor mid-take: stop and throw the partial file away, so a
