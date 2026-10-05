@@ -23,6 +23,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,18 +39,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Numbers
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.RemoveRedEye
+import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CardDefaults
@@ -57,8 +62,13 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -80,6 +90,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -234,7 +245,7 @@ fun TopBarActions(pagerState: PagerState, onClickBack: () -> Unit, viewModel: Ed
                                         append(body)
                                     }
                                 },
-                                audioPath = viewModel.audioPath.value,
+                                audioPaths = viewModel.audioClips.value,
                             )
                         }
                     )
@@ -277,15 +288,17 @@ fun TopBar(pagerState: PagerState,coroutineScope: CoroutineScope, onClickBack: (
     )
 }
 
-// Recorder control for a voice note, overlaid in the corner of the description
-// card. Deliberately not a gate: the note saves with or without a recording, so
-// declining the microphone permission costs the user nothing but the audio.
+// Transport card for a note's voice clips, sitting at the bottom of the
+// description card. Deliberately not a gate: the note saves with or without a
+// recording, so declining the microphone permission costs the user nothing but
+// the audio.
 @Composable
-private fun AudioNoteButton(viewModel: EditViewModel, modifier: Modifier = Modifier) {
+private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val hasAudio = viewModel.audioPath.value != null
+    val clips = viewModel.audioClips.value
     val isRecording = viewModel.isRecording.value
     val isPlaying = viewModel.isPlayingAudio.value
+    val activeClip = viewModel.activeClip.value
 
     // Asked on each composition rather than cached: the permission can be
     // revoked from system settings while the editor stays open, and
@@ -300,90 +313,216 @@ private fun AudioNoteButton(viewModel: EditViewModel, modifier: Modifier = Modif
         if (granted) viewModel.startRecording()
     }
 
-    // Nothing to show until the note is an audio note, has a recording, or is
-    // mid-take.
-    if (!hasAudio && !isRecording && !viewModel.audioRequested.value) return
+    // Single source of truth with the description field's layout, so the card
+    // and the space it needs can never disagree.
+    if (!viewModel.showAudioControls) return
 
-    // Circle while idle or recording, pill once there is a clip to play. The
-    // radius is animated rather than swapped so the control grows into its
-    // expanded role instead of jumping.
+    val onRecordTap = {
+        when {
+            isRecording -> viewModel.stopRecording()
+            micGranted -> viewModel.startRecording()
+            else -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+        Unit
+    }
+
+    // Rounder while the card is just a record button, softer once it has grown
+    // into a transport. Animated rather than swapped so the change of role reads
+    // as the card growing into it.
     val cornerRadius by animateDpAsState(
-        targetValue = if (hasAudio) 16.dp else 50.dp,
+        targetValue = if (clips.isEmpty()) 28.dp else 20.dp,
         animationSpec = tween(durationMillis = 220),
-        label = "audioButtonCornerRadius",
+        label = "audioCardCornerRadius",
     )
     // A slow pulse while recording: the shape alone cannot say "in progress".
     // animateFloat is an extension on InfiniteTransition, not a top-level
     // function, hence the explicit transition below.
-    val infiniteTransition = rememberInfiniteTransition(label = "audioButtonTransition")
+    val infiniteTransition = rememberInfiniteTransition(label = "audioCardTransition")
     val pulse by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (isRecording) 1.06f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "audioButtonPulse",
+        targetValue = if (isRecording) 1.03f else 1f,
+        // Only loop while actually recording. An infiniteRepeatable left
+        // running when idle would keep a frame callback alive for the editor's
+        // whole lifetime, animating nothing.
+        animationSpec = if (isRecording) {
+            infiniteRepeatable(
+                animation = tween(700, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            )
+        } else {
+            tween(200)
+        },
+        label = "audioCardPulse",
     )
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    Surface(
+        shape = RoundedCornerShape(cornerRadius),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.graphicsLayer { scaleX = pulse; scaleY = pulse },
     ) {
-        if (hasAudio) {
-            IconButton(onClick = { viewModel.deleteAudio() }) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = stringResource(R.string.delete_audio),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-        Surface(
-            onClick = {
-                when {
-                    isRecording -> viewModel.stopRecording()
-                    hasAudio -> viewModel.toggleAudioPlayback()
-                    micGranted -> viewModel.startRecording()
-                    else -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            },
-            shape = RoundedCornerShape(cornerRadius),
-            color = when {
-                isRecording -> MaterialTheme.colorScheme.errorContainer
-                isPlaying -> MaterialTheme.colorScheme.secondaryContainer
-                else -> MaterialTheme.colorScheme.surfaceContainerHighest
-            },
-            contentColor = when {
-                isRecording -> MaterialTheme.colorScheme.onErrorContainer
-                isPlaying -> MaterialTheme.colorScheme.onSecondaryContainer
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier
-                .size(38.dp)
-                .graphicsLayer { scaleX = pulse; scaleY = pulse },
+        Column(
+            modifier = Modifier.padding(AUDIO_CARD_INSET),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AUDIO_ROW_GAP),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = when {
-                        isRecording -> Icons.Rounded.Stop
-                        hasAudio && isPlaying -> Icons.Rounded.Stop
-                        hasAudio -> Icons.Rounded.PlayArrow
-                        else -> Icons.Rounded.Mic
-                    },
-                    contentDescription = stringResource(
-                        when {
-                            isRecording -> R.string.stop_recording
-                            hasAudio && isPlaying -> R.string.stop_playback
-                            hasAudio -> R.string.play_audio
-                            else -> R.string.record_audio
-                        }
-                    ),
-                    modifier = Modifier.size(20.dp),
+            if (isRecording) {
+                Text(
+                    text = stringResource(R.string.audio_recording_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
+
+            if (clips.isEmpty()) {
+                // Nothing to transport yet, so just the record button.
+                Row(horizontalArrangement = Arrangement.spacedBy(AUDIO_ROW_GAP)) {
+                    RecordButton(
+                        isRecording = isRecording,
+                        recordNew = false,
+                        onClick = onRecordTap,
+                    )
+                }
+            } else {
+                Row(
+                    // Five 48dp targets plus a divider come to roughly 285dp,
+                    // which fits any normal phone but is tight on a 320dp
+                    // screen. Scrolling is the cheap insurance: it costs
+                    // nothing when there is room and degrades instead of
+                    // clipping when there is not.
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AUDIO_ROW_GAP),
+                ) {
+                    // Skips and delete act on the loaded clip, so they stay
+                    // disabled until one is.
+                    TransportButton(
+                        icon = Icons.Rounded.Replay5,
+                        contentDescription = stringResource(R.string.skip_back_5),
+                        enabled = activeClip != null,
+                        onClick = { viewModel.seekAudio(-AUDIO_SKIP_MS) },
+                    )
+                    FilledIconButton(
+                        onClick = { activeClip?.let(viewModel::toggleClipPlayback) },
+                        modifier = Modifier.size(AUDIO_TOUCH_TARGET),
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = stringResource(
+                                if (isPlaying) R.string.pause_audio else R.string.play_audio
+                            ),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    TransportButton(
+                        icon = Icons.Rounded.Forward5,
+                        contentDescription = stringResource(R.string.skip_forward_5),
+                        enabled = activeClip != null,
+                        onClick = { viewModel.seekAudio(AUDIO_SKIP_MS) },
+                    )
+
+                    VerticalDivider(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .height(AUDIO_TOUCH_TARGET),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    RecordButton(
+                        isRecording = isRecording,
+                        recordNew = true,
+                        onClick = onRecordTap,
+                    )
+                    TransportButton(
+                        icon = Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.delete_clip),
+                        enabled = activeClip != null,
+                        onClick = { activeClip?.let(viewModel::deleteClip) },
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                // The clip list, only once there is more than one to choose
+                // between. Tapping a chip plays that clip, matching the
+                // play/pause button's behaviour on the same selection.
+                if (clips.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .height(AUDIO_CLIP_ROW_HEIGHT)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        clips.indices.forEach { index ->
+                            FilterChip(
+                                selected = index == activeClip,
+                                onClick = { viewModel.toggleClipPlayback(index) },
+                                label = {
+                                    Text(stringResource(R.string.audio_clip_label, index + 1))
+                                },
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+// 48dp is the Android minimum touch target. Every control here meets it, which
+// the previous 38dp Surface did not - Surface applies no minimum of its own, so
+// that size was whatever it was told to be.
+private val AUDIO_TOUCH_TARGET = 48.dp
+private val AUDIO_CLIP_ROW_HEIGHT = 36.dp
+private val AUDIO_CARD_INSET = 8.dp
+private val AUDIO_ROW_GAP = 4.dp
+
+/** Skip step for the transport, in milliseconds. */
+private const val AUDIO_SKIP_MS = 5_000
+
+@Composable
+private fun RecordButton(
+    isRecording: Boolean,
+    recordNew: Boolean,
+    onClick: () -> Unit,
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(AUDIO_TOUCH_TARGET),
+    ) {
+        Icon(
+            imageVector = if (isRecording) Icons.Rounded.Stop else Icons.Rounded.Mic,
+            contentDescription = stringResource(
+                when {
+                    isRecording -> R.string.stop_recording
+                    recordNew -> R.string.record_new_audio
+                    else -> R.string.record_audio
+                }
+            ),
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+@Composable
+private fun TransportButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    tint: Color = LocalContentColor.current,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(AUDIO_TOUCH_TARGET),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(22.dp),
+            tint = tint,
+        )
     }
 }
 
@@ -588,23 +727,26 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                 .weight(1f)
                 .onFocusChanged { viewModel.toggleIsDescriptionInFocus(it.isFocused) },
             content = {
-                Box(modifier = Modifier.fillMaxSize()) {
+                // A Column rather than an overlay: the transport card takes its
+                // own height off the bottom instead of floating over the text.
+                // Overlaying would mean the field had to reserve a guessed
+                // height, and any mismatch between that guess and what the card
+                // actually draws either hides the last line or leaves a gap.
+                Column(modifier = Modifier.fillMaxSize()) {
                     CustomTextField(
                         value = viewModel.noteDescription.value,
                         onValueChange = { viewModel.updateNoteDescription(it) },
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         placeholder = stringResource(R.string.description),
                         useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
                     )
-                    // Overlaid rather than stacked: the box's own heightIn cap is
-                    // already neutralised by weight(1f), and an overlay keeps the
-                    // text field's full height instead of surrendering a line to
-                    // the control.
-                    AudioNoteButton(
+                    AudioTransportCard(
                         viewModel = viewModel,
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp),
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = 6.dp),
                     )
                 }
             }

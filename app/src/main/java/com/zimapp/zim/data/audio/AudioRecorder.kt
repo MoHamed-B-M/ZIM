@@ -99,19 +99,27 @@ class AudioPlayer {
 
     val isPlaying: Boolean get() = runCatching { player?.isPlaying == true }.getOrDefault(false)
 
-    // Starts the clip, or stops it when it is already the one playing. Returns
-    // whether audio is playing afterwards, so a refused playback (file removed
+    // Whether a clip is loaded at all, playing or paused. This is the state that
+    // makes a pause button possible: isPlaying alone cannot tell "paused" from
+    // "never started", and the transport needs to tell them apart to decide
+    // whether to resume or to load.
+    val isLoaded: Boolean get() = player != null
+
+    val loadedPath: String? get() = current
+
+    // Both of these are only meaningful while a clip is prepared, and 0 when it
+    // is not. Callers should treat 0 as "unknown" rather than "zero length".
+    val positionMs: Int get() = runCatching { player?.currentPosition ?: 0 }.getOrDefault(0)
+    val durationMs: Int get() = runCatching { player?.duration ?: 0 }.getOrDefault(0)
+
+    // Loads and starts [file], replacing anything already loaded. Returns whether
+    // audio is playing afterwards, so a refused playback (file removed
     // underneath us, codec unavailable) does not leave a stuck indicator.
-    fun toggle(file: File): Boolean {
-        val path = file.absolutePath
-        if (current == path && player != null) {
-            stop()
-            return false
-        }
+    fun play(file: File): Boolean {
         stop()
         val started = runCatching {
             val p = MediaPlayer()
-            p.setDataSource(path)
+            p.setDataSource(file.absolutePath)
             p.setOnCompletionListener {
                 stop()
                 onFinished?.invoke()
@@ -119,13 +127,50 @@ class AudioPlayer {
             p.prepare()
             p.start()
             player = p
-            current = path
+            current = file.absolutePath
         }.isSuccess
         if (!started) stop()
         return started
     }
 
+    // Suspends without releasing the decoder, so a later resume continues from
+    // the same position. This is the whole reason [toggle]'s release-the-player
+    // behaviour had to go: it made "pause" indistinguishable from "restart".
+    fun pause(): Boolean = runCatching {
+        if (player?.isPlaying == true) {
+            player?.pause()
+            true
+        } else {
+            false
+        }
+    }.getOrDefault(false)
+
+    fun resume(): Boolean = runCatching {
+        if (player != null && player?.isPlaying == false) {
+            player?.start()
+            true
+        } else {
+            false
+        }
+    }.getOrDefault(false)
+
+    /**
+     * Jumps [deltaMs] from the current position, clamped to the clip so a skip
+     * past either end parks rather than throwing. Returns the resulting
+     * position, or -1 when nothing is loaded.
+     */
+    fun seekBy(deltaMs: Int): Int {
+        val p = player ?: return -1
+        return runCatching {
+            val target = (p.currentPosition + deltaMs).coerceIn(0, p.duration)
+            p.seekTo(target)
+            target
+        }.getOrDefault(-1)
+    }
+
     fun stop() {
+        // IllegalStateException from stop() is expected here: the player may be
+        // idle or already completed, and neither is worth propagating.
         runCatching { player?.stop() }
         runCatching { player?.release() }
         player = null
