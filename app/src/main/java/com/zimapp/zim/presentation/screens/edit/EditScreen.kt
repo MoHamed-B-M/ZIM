@@ -14,6 +14,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -68,6 +70,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.ContextCompat
 import androidx.core.view.ContentInfoCompat
@@ -310,7 +313,10 @@ private fun AudioNoteButton(viewModel: EditViewModel, modifier: Modifier = Modif
         label = "audioButtonCornerRadius",
     )
     // A slow pulse while recording: the shape alone cannot say "in progress".
-    val pulse by animateFloat(
+    // animateFloat is an extension on InfiniteTransition, not a top-level
+    // function, hence the explicit transition below.
+    val infiniteTransition = rememberInfiniteTransition(label = "audioButtonTransition")
+    val pulse by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = if (isRecording) 1.06f else 1f,
         animationSpec = infiniteRepeatable(
@@ -347,7 +353,6 @@ private fun AudioNoteButton(viewModel: EditViewModel, modifier: Modifier = Modif
             color = when {
                 isRecording -> MaterialTheme.colorScheme.errorContainer
                 isPlaying -> MaterialTheme.colorScheme.secondaryContainer
-                hasAudio -> MaterialTheme.colorScheme.surfaceContainerHighest
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             },
             contentColor = when {
