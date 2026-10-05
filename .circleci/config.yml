@@ -236,9 +236,58 @@ jobs:
               "$APKSIGNER" verify --print-certs "$APK" || exit 1
             done
 
+      - run:
+          name: Collect diagnostics
+          # Runs even after a failed build. Without `when: always`, a failure
+          # earlier in the job skips every remaining step, so a broken build
+          # would upload nothing and leave nothing to inspect.
+          when: always
+          command: |
+            # Never let a diagnostic step mask the real failure.
+            set +e
+
+            # store_artifacts errors on an empty directory, and a build that died
+            # before "Find APK paths" leaves /tmp/artifacts uncreated. Seed it so
+            # the upload step always has something to send.
+            mkdir -p /tmp/artifacts
+            if [[ -z "$(ls -A /tmp/artifacts 2>/dev/null)" ]]; then
+              echo "No APK was produced by this run - see the step log above." \
+                > /tmp/artifacts/NOTE-no-apk.txt
+            fi
+
+            mkdir -p /tmp/build-reports
+            {
+              echo "version_name=$APP_VERSION_NAME"
+              echo "version_code=$APP_VERSION_CODE"
+              echo "display=$display"
+              echo "tag=$tag"
+              echo "branch=${CIRCLE_BRANCH:-}"
+              echo "tag_ref=${CIRCLE_TAG:-}"
+              echo "sha=${CIRCLE_SHA1:-}"
+              echo "build_num=${CIRCLE_BUILD_NUM:-}"
+              echo "java_home=$JAVA_HOME"
+              echo "sdk_root=$ANDROID_SDK_ROOT"
+            } > /tmp/build-reports/version.txt
+
+            [[ -d app/build/reports ]] && cp -r app/build/reports /tmp/build-reports/
+            # Merged manifest is the single most useful file when a build dies in
+            # manifest merging or resource linking.
+            find app/build/intermediates/merged_manifests -name AndroidManifest.xml \
+              -exec cp --parents {} /tmp/build-reports/ \; 2>/dev/null
+            ls -R /tmp/artifacts /tmp/build-reports
+
       - store_artifacts:
           path: /tmp/artifacts
-          destination: zim-apk
+          destination: apk
+          # Default is on_success, which uploads nothing in exactly the case you
+          # need it: when signature verification above failed, the whole reason
+          # to grab the APK is to look at what went wrong.
+          when: always
+
+      - store_artifacts:
+          path: /tmp/build-reports
+          destination: build-reports
+          when: always
 
       - save_cache:
           key: gradle-v3-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
