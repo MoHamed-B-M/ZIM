@@ -358,5 +358,105 @@ class EditViewModel @Inject constructor(
             text = updatedText,
             selection = TextRange(resultSelectionIndex + offset)
         )
+        // Recorded so the line-level actions are undoable too. They used to
+        // write straight to the state, which made them the one toolbar action
+        // that Ctrl+Z could not take back.
+        undoRedoState.pushHistory(_noteDescription.value)
+    }
+
+    /**
+     * Applies [mark] to the selection, or removes it when it is already applied.
+     *
+     * Cases, in priority order:
+     *  1. Collapsed caret: insert an empty delimiter pair and park the caret
+     *     between them, ready to type inside.
+     *  2. The delimiters are inside the selection: strip them and keep the
+     *     inner text selected, so a second tap unwraps rather than re-wraps.
+     *  3. The delimiters surround the selection (the selection is an already
+     *     marked run): strip the surrounding pair.
+     *  4. Otherwise wrap, keeping the selection over the same original text.
+     */
+    fun toggleMark(mark: MarkdownMark) {
+        val value = _noteDescription.value
+        val text = value.text
+        val start = value.selection.min
+        val end = value.selection.max
+        val open = mark.open
+        val close = mark.close
+
+        val next = when {
+            start == end -> TextFieldValue(
+                text = text.substring(0, start) + open + close + text.substring(end),
+                selection = TextRange(start + open.length),
+            )
+
+            end - start >= open.length + close.length &&
+                text.startsWith(open, start) && text.startsWith(close, end - close.length) ->
+                TextFieldValue(
+                    text = text.substring(0, start) +
+                        text.substring(start + open.length, end - close.length) +
+                        text.substring(end),
+                    selection = TextRange(start, end - close.length - open.length),
+                )
+
+            start - open.length >= 0 && end + close.length <= text.length &&
+                text.startsWith(open, start - open.length) && text.startsWith(close, end) &&
+                isStandaloneDelimiter(text, start - open.length, open) &&
+                isStandaloneDelimiter(text, end, close) ->
+                TextFieldValue(
+                    text = text.substring(0, start - open.length) +
+                        text.substring(start, end) + text.substring(end + close.length),
+                    selection = TextRange(start - open.length, end - open.length),
+                )
+
+            else -> {
+                val selected = text.substring(start, end)
+                TextFieldValue(
+                    text = text.substring(0, start) + open + selected + close + text.substring(end),
+                    selection = TextRange(start + open.length, end + open.length),
+                )
+            }
+        }
+
+        _noteDescription.value = next
+        undoRedoState.pushHistory(next)
+    }
+
+    /**
+     * Whether [mark] currently covers the selection, i.e. whether tapping it
+     * would unwrap. Mirrors the unwrap branches of [toggleMark] exactly, so the
+     * toolbar's highlight can never disagree with what a tap will do.
+     */
+    fun isMarkActive(mark: MarkdownMark): Boolean {
+        val value = _noteDescription.value
+        val text = value.text
+        val start = value.selection.min
+        val end = value.selection.max
+        // A bare caret marks nothing, so nothing is highlighted.
+        if (start == end) return false
+        val open = mark.open
+        val close = mark.close
+
+        if (end - start >= open.length + close.length &&
+            text.startsWith(open, start) && text.startsWith(close, end - close.length)
+        ) return true
+
+        return start - open.length >= 0 && end + close.length <= text.length &&
+            text.startsWith(open, start - open.length) && text.startsWith(close, end) &&
+            isStandaloneDelimiter(text, start - open.length, open) &&
+            isStandaloneDelimiter(text, end, close)
+    }
+
+    /**
+     * Whether the delimiter beginning at [index] is its own run rather than one
+     * character of a longer run.
+     *
+     * Without this, italic (`*`) latches onto the stars of a bold (`**`) run:
+     * asking for italic with the caret inside `**bold**` would strip a star and
+     * mangle the bold.
+     */
+    private fun isStandaloneDelimiter(text: String, index: Int, delimiter: String): Boolean {
+        val char = delimiter.first()
+        return text.getOrNull(index - 1) != char && text.getOrNull(index + delimiter.length) != char
     }
 }

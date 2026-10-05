@@ -123,6 +123,21 @@ class UndoRedoState {
         input = updatedValue
     }
 
+    /**
+     * Records a programmatic edit while keeping the selection it was made with.
+     *
+     * [onInput] deliberately flattens the caret to end-of-text, which is right
+     * for typing but destroys a format toggle: wrapping a selection would
+     * collapse it to the end of the note, leaving the user with nothing to
+     * unwrap on the next tap. Restoring the real selection also means undo
+     * puts the caret back where the edit happened.
+     */
+    fun pushHistory(value: TextFieldValue) {
+        undoHistory.add(value)
+        redoHistory.clear()
+        input = value
+    }
+
     fun undo() {
         if (undoHistory.size > 1) {
             // Pop the last

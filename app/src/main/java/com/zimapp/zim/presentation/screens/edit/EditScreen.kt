@@ -8,6 +8,17 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,6 +56,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +77,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -261,11 +274,11 @@ fun TopBar(pagerState: PagerState,coroutineScope: CoroutineScope, onClickBack: (
     )
 }
 
-// Recorder controls for a voice note. Deliberately not a gate: the note saves
-// with or without a recording, so declining the microphone permission costs
-// the user nothing but the audio.
+// Recorder control for a voice note, overlaid in the corner of the description
+// card. Deliberately not a gate: the note saves with or without a recording, so
+// declining the microphone permission costs the user nothing but the audio.
 @Composable
-private fun AudioNoteBar(viewModel: EditViewModel) {
+private fun AudioNoteButton(viewModel: EditViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val hasAudio = viewModel.audioPath.value != null
     val isRecording = viewModel.isRecording.value
@@ -288,55 +301,81 @@ private fun AudioNoteBar(viewModel: EditViewModel) {
     // mid-take.
     if (!hasAudio && !isRecording && !viewModel.audioRequested.value) return
 
+    // Circle while idle or recording, pill once there is a clip to play. The
+    // radius is animated rather than swapped so the control grows into its
+    // expanded role instead of jumping.
+    val cornerRadius by animateDpAsState(
+        targetValue = if (hasAudio) 16.dp else 50.dp,
+        animationSpec = tween(durationMillis = 220),
+        label = "audioButtonCornerRadius",
+    )
+    // A slow pulse while recording: the shape alone cannot say "in progress".
+    val pulse by animateFloat(
+        initialValue = 1f,
+        targetValue = if (isRecording) 1.06f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "audioButtonPulse",
+    )
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        IconButton(
-            onClick = {
-                when {
-                    isRecording -> viewModel.stopRecording()
-                    micGranted -> viewModel.startRecording()
-                    else -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            }
-        ) {
-            Icon(
-                imageVector = if (isRecording) Icons.Rounded.Stop else Icons.Rounded.Mic,
-                contentDescription = stringResource(
-                    if (isRecording) R.string.stop_recording else R.string.record_audio
-                ),
-                tint = if (isRecording) MaterialTheme.colorScheme.error
-                else MaterialTheme.colorScheme.primary,
-            )
-        }
-        Text(
-            text = stringResource(
-                when {
-                    isRecording -> R.string.recording
-                    hasAudio -> R.string.audio_recorded
-                    else -> R.string.tap_to_record
-                }
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
-        )
-        // Play and delete only mean something once a clip exists.
         if (hasAudio) {
-            IconButton(onClick = { viewModel.toggleAudioPlayback() }) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                    contentDescription = stringResource(
-                        if (isPlaying) R.string.stop_playback else R.string.play_audio
-                    ),
-                )
-            }
             IconButton(onClick = { viewModel.deleteAudio() }) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
                     contentDescription = stringResource(R.string.delete_audio),
                     tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+        Surface(
+            onClick = {
+                when {
+                    isRecording -> viewModel.stopRecording()
+                    hasAudio -> viewModel.toggleAudioPlayback()
+                    micGranted -> viewModel.startRecording()
+                    else -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            },
+            shape = RoundedCornerShape(cornerRadius),
+            color = when {
+                isRecording -> MaterialTheme.colorScheme.errorContainer
+                isPlaying -> MaterialTheme.colorScheme.secondaryContainer
+                hasAudio -> MaterialTheme.colorScheme.surfaceContainerHighest
+                else -> MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+            contentColor = when {
+                isRecording -> MaterialTheme.colorScheme.onErrorContainer
+                isPlaying -> MaterialTheme.colorScheme.onSecondaryContainer
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier
+                .size(38.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse },
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = when {
+                        isRecording -> Icons.Rounded.Stop
+                        hasAudio && isPlaying -> Icons.Rounded.Stop
+                        hasAudio -> Icons.Rounded.PlayArrow
+                        else -> Icons.Rounded.Mic
+                    },
+                    contentDescription = stringResource(
+                        when {
+                            isRecording -> R.string.stop_recording
+                            hasAudio && isPlaying -> R.string.stop_playback
+                            hasAudio -> R.string.play_audio
+                            else -> R.string.record_audio
+                        }
+                    ),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -515,9 +554,6 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
             .fillMaxSize()
             .padding(16.dp, 16.dp, 16.dp, if (viewModel.isDescriptionInFocus.value && settingsViewModel.settings.value.isMarkdownEnabled) 2.dp else 16.dp)
     ) {
-        // Above the title so a voice note's controls sit with the note's
-        // identity rather than being buried under the body text.
-        AudioNoteBar(viewModel)
         MarkdownBox(
             isExtremeAmoled = settingsViewModel.settings.value.extremeAmoledMode,
             shape = shapeManager(radius = settingsViewModel.settings.value.cornerRadius, isFirst = true),
@@ -547,16 +583,37 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                 .weight(1f)
                 .onFocusChanged { viewModel.toggleIsDescriptionInFocus(it.isFocused) },
             content = {
-                CustomTextField(
-                    value = viewModel.noteDescription.value,
-                    onValueChange = { viewModel.updateNoteDescription(it) },
-                    modifier = Modifier.fillMaxSize(),
-                    placeholder = stringResource(R.string.description),
-                    useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CustomTextField(
+                        value = viewModel.noteDescription.value,
+                        onValueChange = { viewModel.updateNoteDescription(it) },
+                        modifier = Modifier.fillMaxSize(),
+                        placeholder = stringResource(R.string.description),
+                        useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
+                    )
+                    // Overlaid rather than stacked: the box's own heightIn cap is
+                    // already neutralised by weight(1f), and an overlay keeps the
+                    // text field's full height instead of surrendering a line to
+                    // the control.
+                    AudioNoteButton(
+                        viewModel = viewModel,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp),
+                    )
+                }
             }
         )
-        if (viewModel.isDescriptionInFocus.value && settingsViewModel.settings.value.isMarkdownEnabled) TextFormattingToolbar(viewModel)
+        AnimatedVisibility(
+            visible = viewModel.isDescriptionInFocus.value && settingsViewModel.settings.value.isMarkdownEnabled,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+        ) {
+            TextFormattingToolbar(
+                viewModel = viewModel,
+                expanded = true,
+            )
+        }
     }
 }
 
