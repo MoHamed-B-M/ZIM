@@ -9,7 +9,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -339,25 +338,17 @@ private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Mo
     // animateFloat is an extension on InfiniteTransition, not a top-level
     // function, hence the explicit transition below.
     val infiniteTransition = rememberInfiniteTransition(label = "audioCardTransition")
-    // Only loop while actually recording. An infiniteRepeatable left running
-    // when idle would keep a frame callback alive for the editor's whole
-    // lifetime, animating nothing.
-    //
-    // The declared type is load-bearing: without it the two branches have no
-    // inferable common type (InfiniteRepeatableSpec and TweenSpec are unrelated
-    // classes) and the whole animateFloat call fails to infer T.
-    val pulseSpec: AnimationSpec<Float> = if (isRecording) {
-        infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        )
-    } else {
-        tween(200)
-    }
+    // animateFloat on an InfiniteTransition requires an InfiniteRepeatableSpec,
+    // so this keeps ticking even when idle - there is no way to hand it a
+    // one-shot spec. Idle cost is bounded: the value stays at 1f and the
+    // graphicsLayer lambda only invalidates the layer, not the composition.
     val pulse by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = if (isRecording) 1.03f else 1f,
-        animationSpec = pulseSpec,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
         label = "audioCardPulse",
     )
 
