@@ -1,0 +1,263 @@
+# ZIM — CircleCI build
+#
+# Port of the `build` job from .github/workflows/build.yaml. The APK production
+# path (version stamping -> signing -> assembleRelease -> rename + sha256 ->
+# apksigner verify) is reproduced exactly, because app/build.gradle.kts reads its
+# signing material and version purely from environment variables:
+#
+#   KEYSTORE_PATH  KEYSTORE_PASSWORD  KEY_ALIAS  KEY_PASSWORD
+#   APP_VERSION_NAME  APP_VERSION_CODE
+#
+# so nothing in the Gradle build had to change to move here.
+#
+# NOT ported, on purpose:
+#   * preview-release / github-release jobs. Those drive the GitHub Releases API
+#     (gh CLI, softprops/action-gh-release) and auto-prune beta prereleases.
+#     There is no CircleCI equivalent and re-implementing it would mean shipping
+#     a GitHub token into a second vendor. GitHub Actions keeps that job.
+#   * the `rm -rf ~/.gradle/caches/modules-2` + `rm -rf build-cache-1` steps. The
+#     GitHub job restores that same cache a few steps earlier and then deletes
+#     it, so every run re-downloads all dependencies. Kept `./gradlew clean`
+#     and `--no-build-cache` (both still meaningful), dropped the deletes.
+#
+# Secrets: set these as CircleCI project Environment Variables, same names as
+# the GitHub secrets (Settings -> Project Settings -> Environment Variables).
+# Leave KEYSTORE_BASE64 empty to get the same deterministic ephemeral preview
+# keystore the GitHub job generates — previews stay signed either way.
+#
+#   KEYSTORE_BASE64     base64 of the release .keystore
+#   KEYSTORE_PASSWORD
+#   KEY_ALIAS
+#   KEY_PASSWORD
+
+version: 2.1
+
+executors:
+  android:
+    # JDK 21 and the Android SDK are preinstalled, so unlike the GitHub job there
+    # is no sdkmanager/licence step here. Verified present in the image:
+    # platforms;android-36 (== compileSdk in app/build.gradle.kts),
+    # platforms;android-34/35/36.1/37.0, build-tools;35.0.0/36.0.0/36.1.0/37.0.0.
+    # If a future dependency bump demands a newer platform, add one sdkmanager
+    # line below rather than relying on AGP's on-demand download.
+    docker:
+      - image: cimg/android:2026.08.1
+    resource_class: large
+
+jobs:
+  build:
+    executor: android
+    environment:
+      # --- versioning, mirroring the GitHub env block -----------------------
+      BASE_VERSION: "1.0.0"
+      STABLE_BUILD: "1"
+      RELEASE_TAGLINE: ""
+
+      # DANGER: this must stay ABOVE every versionCode the GitHub workflow has
+      # or will ever produce, and must never be lowered.
+      #
+      # GitHub beta codes are BETA_CODE_OFFSET(100000) + run_number. Highest run
+      # number observed is 58; the last beta that actually shipped was run 57 ->
+      # versionCode 100057.
+      #
+      # CircleCI's CIRCLE_BUILD_NUM is an independent counter that starts at 1,
+      # so naively reusing the 100000 offset would make the first CircleCI build
+      # versionCode 100001 — *lower* than what is installed. Android rejects a
+      # non-increasing versionCode outright ("App not installed"), forcing an
+      # uninstall and losing the user's notes. Hence a disjoint, much higher
+      # band so the two CI histories can never collide.
+      CIRCLE_BETA_CODE_OFFSET: "200000"
+
+      # `large` is 2 vCPU / 4 GB. The GitHub runner had 16 GB and used 4g/3g;
+      # these are trimmed to fit 4 GB with room for the Gradle + Kotlin daemons.
+      # On `medium` (2 GB) drop them to GRADLE_XMX=1g / KOTLIN_XMX=1400m.
+      GRADLE_XMX: "3g"
+      KOTLIN_XMX: "2g"
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - gradle-v3-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+            - gradle-v3-
+
+      - run:
+          name: Toolchain check
+          command: |
+            # Cheap, and it makes any later failure self-diagnosing: if the JDK or
+            # the android-36 platform ever goes missing from the image, it is
+            # obvious here instead of surfacing as an opaque Gradle error.
+            echo "JAVA_HOME=$JAVA_HOME"
+            java -version 2>&1
+            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+            ls -d "$ANDROID_SDK_ROOT/platforms/android-36" || {
+              echo "FATAL: platforms;android-36 missing from image"; exit 1; }
+            echo "build-tools present:"; ls "$ANDROID_SDK_ROOT/build-tools"
+
+      - run:
+          name: Make gradlew executable
+          command: chmod +x ./gradlew
+
+      - run:
+          name: Resolve version
+          command: |
+            # Version name: tag if building a tag, pinned stable on main, dev preview otherwise.
+            # Beta tracks BASE_VERSION (e.g. 1.0.1-dev(#N)) so it always follows the
+            # current stable line, with codes above any stable build.
+            if [[ -n "${CIRCLE_TAG:-}" && "$CIRCLE_TAG" == v* ]]; then
+              VN="${CIRCLE_TAG#v}"
+              CODE="$((1 + CIRCLE_BUILD_NUM))"
+              TAG="$CIRCLE_TAG"
+              DISPLAY="${VN}+${CODE}"
+            elif [[ "$CIRCLE_BRANCH" == "main" ]]; then
+              VN="$BASE_VERSION"
+              CODE="$STABLE_BUILD"
+              TAG="v${VN}+${CODE}"
+              DISPLAY="${VN}+${CODE}"
+              # Only the very first stable gets the First Release title.
+              if [[ "$DISPLAY" == "1.0.0+1" ]]; then SUFFIX=" — First Release"; else SUFFIX=""; fi
+            else
+              VN="${BASE_VERSION}-dev(#${CIRCLE_BUILD_NUM})"
+              CODE="$(($CIRCLE_BETA_CODE_OFFSET + CIRCLE_BUILD_NUM))"
+              TAG=""
+              DISPLAY="$VN"
+            fi
+            echo "name=$VN"    >> "$BASH_ENV"
+            echo "code=$CODE"   >> "$BASH_ENV"
+            echo "display=$DISPLAY" >> "$BASH_ENV"
+            echo "tag=$TAG"     >> "$BASH_ENV"
+            echo "suffix=${SUFFIX:-}" >> "$BASH_ENV"
+            # Consumed by app/build.gradle.kts
+            echo "APP_VERSION_NAME=$VN"  >> "$BASH_ENV"
+            echo "APP_VERSION_CODE=$CODE" >> "$BASH_ENV"
+            echo "Version: $VN+$CODE (tag $TAG)"
+
+      - run:
+          name: Prepare signing keystore
+          command: |
+            set -e
+            if [[ -n "${KEYSTORE_BASE64:-}" ]]; then
+              echo "→ Decoding keystore from env KEYSTORE_BASE64"
+              echo "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+              echo "KEYSTORE_PATH=app/release.keystore" >> "$BASH_ENV"
+              echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$BASH_ENV"
+              echo "KEY_ALIAS=$KEY_ALIAS"                 >> "$BASH_ENV"
+              echo "KEY_PASSWORD=$KEY_PASSWORD"           >> "$BASH_ENV"
+            else
+              echo "→ No KEYSTORE_BASE64 — generating ephemeral preview keystore"
+              # Deterministic ephemeral keystore so previews are still signed (not debug unsigned)
+              keytool -genkeypair -v \
+                -keystore app/release.keystore \
+                -storepass zim123 \
+                -alias zim \
+                -keypass zim123 \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=ZIM Preview, OU=CI, O=ZIM, L=Cairo, S=Cairo, C=EG"
+              echo "KEYSTORE_PATH=app/release.keystore" >> "$BASH_ENV"
+              echo "KEYSTORE_PASSWORD=zim123" >> "$BASH_ENV"
+              echo "KEY_ALIAS=zim"           >> "$BASH_ENV"
+              echo "KEY_PASSWORD=zim123"     >> "$BASH_ENV"
+            fi
+            ls -lh app/release.keystore
+
+      - run:
+          name: Clean build outputs
+          command: |
+            ./gradlew clean --stacktrace || true
+
+      - run:
+          name: Build signed assembleRelease
+          command: |
+            # APP_VERSION_NAME / APP_VERSION_CODE were stamped above so the in-app
+            # updater's versionCode comparison works across beta builds.
+            #
+            # CircleCI cancels a Docker job after 10 minutes of silence, and
+            # `no_output_timeout` is not permitted on the Docker executor, so the
+            # wait is built here instead: run Gradle in a subshell that records
+            # its exit code, and heartbeat a line every 60s until it lands. Gradle
+            # itself is passed --info, so its own logging is verbose too — this is
+            # just insurance for a long quiet Kotlin/KSP pass.
+            DONE=$(mktemp)
+            ( ./gradlew :app:assembleRelease --stacktrace --info --no-build-cache \
+                --max-workers=2 \
+                -Dorg.gradle.jvmargs="-Xmx${GRADLE_XMX} -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError" \
+                -Dkotlin.daemon.jvmargs="-Xmx${KOTLIN_XMX}" ;
+              echo $? > "$DONE" ) &
+            while [[ ! -s "$DONE" ]]; do
+              echo "…assembleRelease still running at $(date -u +%H:%M:%S)"
+              sleep 60
+            done
+            echo "Build finished, APKs:"
+            find app/build -name "*.apk" -type f -exec ls -lh {} \;
+            exit "$(cat "$DONE")"
+
+      - run:
+          name: Find APK paths (per-flavor builds)
+          command: |
+            # Flavored builds land in apk/<flavor>/<type>/, not apk/release/.
+            mapfile -t FOUND < <(find app/build/outputs/apk -name "*.apk" -type f | sort)
+            if [[ ${#FOUND[@]} -eq 0 ]]; then
+              echo "No APKs found!"
+              find app/build -type f | head -n 100
+              exit 1
+            fi
+            # Friendly names keep only the ZIM-*.apk files in releases;
+            # raw app-*-release.apk files are never published.
+            # File-safe form of the version name, e.g. 1.0.1-dev(#42) -> 1.0.1-dev-42.
+            SAFE=$(echo "$name" | tr -d '(#)' | tr ' ' '-')
+            mkdir -p /tmp/artifacts
+            for APK in "${FOUND[@]}"; do
+              FLAVOR=$(echo "$APK" | sed -E 's|.*/apk/([^/]+)/.*|\1|')
+              case "$APK" in
+                *arm64-v8a*) ABI="arm64" ;;
+                *armeabi-v7a*) ABI="armv7" ;;
+                *) ABI="universal" ;;
+              esac
+              OUT="/tmp/artifacts/ZIM-${SAFE}-${FLAVOR}-${ABI}.apk"
+              cp "$APK" "$OUT"
+              sha256sum "$OUT" | sed "s|/tmp/artifacts/||" > "$OUT.sha256"
+              cat "$OUT.sha256"
+            done
+            ls -lh /tmp/artifacts/ZIM-*.apk*
+
+      - run:
+          name: Verify APK signatures (fail if unsigned)
+          command: |
+            # An unsigned APK installs as INSTALL_PARSE_FAILED_NO_CERTIFICATES —
+            # never publish one again: fail loudly here instead.
+            APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | sort | tail -n1)
+            echo "apksigner=$APKSIGNER"
+            if [[ -z "$APKSIGNER" ]]; then echo "apksigner not found!"; exit 1; fi
+            shopt -s nullglob
+            APKS=(/tmp/artifacts/ZIM-*.apk)
+            if [[ ${#APKS[@]} -eq 0 ]]; then echo "no APKs to verify!"; exit 1; fi
+            for APK in "${APKS[@]}"; do
+              echo "→ verifying $APK"
+              "$APKSIGNER" verify --print-certs "$APK" || exit 1
+            done
+
+      - store_artifacts:
+          path: /tmp/artifacts
+          destination: zim-apk
+
+      - save_cache:
+          key: gradle-v3-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      # Beta previews and stable releases only, so a docs or tooling commit
+      # does not spend a container on a full Android build.
+      - build:
+        filters:
+          branches:
+            only:
+              - beta
+              - main
+          tags:
+            only:
+              - /^v.*/
