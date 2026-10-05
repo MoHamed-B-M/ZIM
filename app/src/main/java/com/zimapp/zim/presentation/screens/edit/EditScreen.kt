@@ -11,10 +11,13 @@ import android.webkit.MimeTypeMap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -62,13 +65,11 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -373,57 +374,55 @@ private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Mo
 
             if (clips.isEmpty()) {
                 // Nothing to transport yet, so just the record button.
-                Row(horizontalArrangement = Arrangement.spacedBy(AUDIO_ROW_GAP)) {
-                    RecordButton(
-                        isRecording = isRecording,
-                        recordNew = false,
-                        onClick = onRecordTap,
-                    )
-                }
+                RecordButton(
+                    isRecording = isRecording,
+                    recordNew = false,
+                    onClick = onRecordTap,
+                )
             } else {
-                Row(
-                    // Five 48dp targets plus a divider come to roughly 285dp,
-                    // which fits any normal phone but is tight on a 320dp
-                    // screen. Scrolling is the cheap insurance: it costs
-                    // nothing when there is room and degrades instead of
-                    // clipping when there is not.
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AUDIO_ROW_GAP),
-                ) {
-                    // Skips and delete act on the loaded clip, so they stay
-                    // disabled until one is.
-                    TransportButton(
-                        icon = Icons.Rounded.Replay5,
-                        contentDescription = stringResource(R.string.skip_back_5),
-                        enabled = activeClip != null,
-                        onClick = { viewModel.seekAudio(-AUDIO_SKIP_MS) },
-                    )
-                    FilledIconButton(
-                        onClick = { activeClip?.let(viewModel::toggleClipPlayback) },
-                        modifier = Modifier.size(AUDIO_TOUCH_TARGET),
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = stringResource(
-                                if (isPlaying) R.string.pause_audio else R.string.play_audio
-                            ),
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    TransportButton(
-                        icon = Icons.Rounded.Forward5,
-                        contentDescription = stringResource(R.string.skip_forward_5),
-                        enabled = activeClip != null,
-                        onClick = { viewModel.seekAudio(AUDIO_SKIP_MS) },
-                    )
+                // The transport gets the full card width. Weight morphing needs
+                // it: sharing the row with fixed-width buttons would leave the
+                // skip controls squeezed under the 48dp minimum touch target.
+                ElasticPushRow(
+                    isPlaying = isPlaying,
+                    enabled = activeClip != null,
+                    onBack = { viewModel.seekAudio(-AUDIO_SKIP_MS) },
+                    onPlayPause = { activeClip?.let(viewModel::toggleClipPlayback) },
+                    onForward = { viewModel.seekAudio(AUDIO_SKIP_MS) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-                    VerticalDivider(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .height(AUDIO_TOUCH_TARGET),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    // The chip run absorbs the slack, so record and delete stay
+                    // put however many clips there are.
+                    horizontalArrangement = Arrangement.spacedBy(
+                        AUDIO_ROW_GAP,
+                        Alignment.CenterHorizontally,
+                    ),
+                ) {
+                    // The clip list, only once there is more than one to choose
+                    // between. Tapping a chip plays that clip, matching the
+                    // play/pause button's behaviour on the same selection.
+                    if (clips.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            clips.indices.forEach { index ->
+                                FilterChip(
+                                    selected = index == activeClip,
+                                    onClick = { viewModel.toggleClipPlayback(index) },
+                                    label = {
+                                        Text(stringResource(R.string.audio_clip_label, index + 1))
+                                    },
+                                )
+                            }
+                        }
+                    }
 
                     RecordButton(
                         isRecording = isRecording,
@@ -438,29 +437,6 @@ private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Mo
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
-
-                // The clip list, only once there is more than one to choose
-                // between. Tapping a chip plays that clip, matching the
-                // play/pause button's behaviour on the same selection.
-                if (clips.size > 1) {
-                    Row(
-                        modifier = Modifier
-                            .height(AUDIO_CLIP_ROW_HEIGHT)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        clips.indices.forEach { index ->
-                            FilterChip(
-                                selected = index == activeClip,
-                                onClick = { viewModel.toggleClipPlayback(index) },
-                                label = {
-                                    Text(stringResource(R.string.audio_clip_label, index + 1))
-                                },
-                            )
-                        }
-                    }
-                }
             }
         }
     }
@@ -470,12 +446,164 @@ private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Mo
 // the previous 38dp Surface did not - Surface applies no minimum of its own, so
 // that size was whatever it was told to be.
 private val AUDIO_TOUCH_TARGET = 48.dp
-private val AUDIO_CLIP_ROW_HEIGHT = 36.dp
 private val AUDIO_CARD_INSET = 8.dp
 private val AUDIO_ROW_GAP = 4.dp
 
 /** Skip step for the transport, in milliseconds. */
 private const val AUDIO_SKIP_MS = 5_000
+
+private val PUSH_CORNER_RADIUS = 14.dp
+private val PUSH_PILL_RADIUS = 26.dp
+private val PUSH_ROW_GAP = 6.dp
+
+// How far the tapped control grows and how far its neighbours squeeze. The
+// compression stays well clear of zero because RowScope.weight rejects 0f.
+private const val PUSH_EXPANSION = 1.30f
+private const val PUSH_COMPRESSION = 0.72f
+
+/**
+ * The bouncy spring behind the push row's weights and corner radii.
+ *
+ * `spring` is generic, so one factory covers both the Float weights and the Dp
+ * radii below. DampingRatioMediumBouncy overshoots past its target and settles
+ * back, which is what makes a tap read as pushing rather than easing.
+ */
+private fun <T> pushSpring() = spring<T>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessLow,
+)
+
+private enum class PushControl { BACK, PLAY_PAUSE, FORWARD }
+
+/**
+ * Back 5s / play-pause / forward 5s, morphing instead of sitting still: the
+ * tapped control expands and its neighbours compress, so a tap pushes through
+ * the row rather than just lighting up.
+ */
+@Composable
+private fun ElasticPushRow(
+    isPlaying: Boolean,
+    enabled: Boolean,
+    onBack: () -> Unit,
+    onPlayPause: () -> Unit,
+    onForward: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var pushed by remember { mutableStateOf<PushControl?>(null) }
+
+    fun weightFor(control: PushControl): Float {
+        // Play/pause carries a larger base weight because it is the primary
+        // control, and the push multipliers scale that base rather than
+        // replacing it - otherwise the pushed skip would outgrow playback.
+        val base = if (control == PushControl.PLAY_PAUSE) 1.5f else 1f
+        return when (pushed) {
+            null -> base
+            control -> base * PUSH_EXPANSION
+            else -> base * PUSH_COMPRESSION
+        }
+    }
+
+    val backWeight by animateFloatAsState(
+        targetValue = weightFor(PushControl.BACK),
+        animationSpec = pushSpring(),
+        label = "pushBackWeight",
+    )
+    val playWeight by animateFloatAsState(
+        targetValue = weightFor(PushControl.PLAY_PAUSE),
+        animationSpec = pushSpring(),
+        label = "pushPlayWeight",
+    )
+    val forwardWeight by animateFloatAsState(
+        targetValue = weightFor(PushControl.FORWARD),
+        animationSpec = pushSpring(),
+        label = "pushForwardWeight",
+    )
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(PUSH_ROW_GAP),
+    ) {
+        PushButton(
+            modifier = Modifier.weight(backWeight),
+            icon = Icons.Rounded.Replay5,
+            contentDescription = stringResource(R.string.skip_back_5),
+            enabled = enabled,
+            isPushed = pushed == PushControl.BACK,
+            onClick = {
+                pushed = PushControl.BACK
+                onBack()
+            },
+        )
+        PushButton(
+            modifier = Modifier.weight(playWeight),
+            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            contentDescription = stringResource(
+                if (isPlaying) R.string.pause_audio else R.string.play_audio
+            ),
+            enabled = enabled,
+            isPushed = pushed == PushControl.PLAY_PAUSE,
+            filled = true,
+            onClick = {
+                pushed = PushControl.PLAY_PAUSE
+                onPlayPause()
+            },
+        )
+        PushButton(
+            modifier = Modifier.weight(forwardWeight),
+            icon = Icons.Rounded.Forward5,
+            contentDescription = stringResource(R.string.skip_forward_5),
+            enabled = enabled,
+            isPushed = pushed == PushControl.FORWARD,
+            onClick = {
+                pushed = PushControl.FORWARD
+                onForward()
+            },
+        )
+    }
+}
+
+@Composable
+private fun PushButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    isPushed: Boolean,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+    onClick: () -> Unit,
+) {
+    // The pushed control also rounds toward a pill, so the shape change agrees
+    // with the width change instead of only the width moving.
+    val cornerRadius by animateDpAsState(
+        targetValue = if (isPushed) PUSH_PILL_RADIUS else PUSH_CORNER_RADIUS,
+        animationSpec = pushSpring(),
+        label = "pushCornerRadius",
+    )
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(cornerRadius),
+        color = if (filled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        contentColor = if (filled) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = modifier.height(AUDIO_TOUCH_TARGET),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
 
 @Composable
 private fun RecordButton(
@@ -730,6 +858,12 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                 // height, and any mismatch between that guess and what the card
                 // actually draws either hides the last line or leaves a gap.
                 Column(modifier = Modifier.fillMaxSize()) {
+                    AudioTransportCard(
+                        viewModel = viewModel,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 6.dp),
+                    )
                     CustomTextField(
                         value = viewModel.noteDescription.value,
                         onValueChange = { viewModel.updateNoteDescription(it) },
@@ -738,12 +872,6 @@ fun EditScreen(viewModel: EditViewModel,settingsViewModel: SettingsViewModel, pa
                             .fillMaxWidth(),
                         placeholder = stringResource(R.string.description),
                         useMonoSpaceFont = settingsViewModel.settings.value.useMonoSpaceFont
-                    )
-                    AudioTransportCard(
-                        viewModel = viewModel,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 6.dp),
                     )
                 }
             }
