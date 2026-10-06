@@ -254,7 +254,10 @@ private fun ElasticRefreshIndicator(
         // Same offset maths the stock indicator uses, so this parks exactly
         // where the built-in one would: hidden above the edge at rest, fully
         // revealed at the threshold.
-        targetValue = fraction * PullToRefreshDefaults.IndicatorMaxDistance - ELASTIC_REFRESH_SIZE,
+        targetValue = (
+            PullToRefreshDefaults.IndicatorMaxDistance.value * fraction -
+                ELASTIC_REFRESH_SIZE.value
+            ).dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium,
