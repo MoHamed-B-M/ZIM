@@ -29,7 +29,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
@@ -81,7 +80,6 @@ import com.zimapp.zim.presentation.components.TitleText
 import com.zimapp.zim.presentation.components.VaultButton
 import com.zimapp.zim.presentation.components.defaultScreenEnterAnimation
 import com.zimapp.zim.presentation.components.defaultScreenExitAnimation
-import com.zimapp.zim.presentation.screens.edit.model.TEMPLATE_AUDIO
 import com.zimapp.zim.presentation.screens.edit.model.TEMPLATE_TODO
 import com.zimapp.zim.presentation.screens.home.viewmodel.HomeViewModel
 import com.zimapp.zim.presentation.screens.home.widgets.NoteFilter
@@ -127,7 +125,6 @@ fun HomeView (
             NewNoteMenu(
                 onNewNote = { onNoteClicked(0, viewModel.isVaultMode.value, "") },
                 onNewToDo = { onNoteClicked(0, viewModel.isVaultMode.value, TEMPLATE_TODO) },
-                onNewAudio = { onNoteClicked(0, viewModel.isVaultMode.value, TEMPLATE_AUDIO) },
             )
         },
         topBar = {
@@ -315,7 +312,6 @@ private fun ElasticRefreshIndicator(
 private fun NewNoteMenu(
     onNewNote: () -> Unit,
     onNewToDo: () -> Unit,
-    onNewAudio: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -324,17 +320,6 @@ private fun NewNoteMenu(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.imePadding(),
     ) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + scaleIn(initialScale = 0.6f),
-            exit = fadeOut() + scaleOut(targetScale = 0.6f),
-        ) {
-            NewNoteMenuItem(
-                icon = Icons.Rounded.Mic,
-                label = stringResource(R.string.new_audio_note),
-                onClick = onNewAudio,
-            )
-        }
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn() + scaleIn(initialScale = 0.6f),

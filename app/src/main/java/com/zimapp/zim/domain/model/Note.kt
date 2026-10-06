@@ -21,10 +21,10 @@ data class Note(
     @ColumnInfo(name = "encrypted")
     val encrypted: Boolean = false,
 
-    // Absolute path to a recording in app-private storage, or null for a note
-    // with no audio. Nullable so every existing row stays valid after the
-    // column is added: Room reads a missing value as null rather than
-    // demanding a default.
+    // Retained for existing installs only: the voice-note feature was removed,
+    // so this is always null on new rows and never read. Dropping the column
+    // would need a table-recreate migration, which is risk without runtime
+    // verification — keeping a nullable dead column is the safe option.
     @ColumnInfo(name = "audio_path")
     val audioPath: String? = null,
 

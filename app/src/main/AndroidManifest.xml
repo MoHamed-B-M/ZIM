@@ -23,10 +23,6 @@
          PackageManager.canRequestPackageInstalls() throws SecurityException when
          this is absent, which used to crash the onboarding screen. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <!-- Voice notes are recorded into app-private storage, so no storage
-         permission is involved; only the microphone is requested, and only at
-         the moment the user taps record. -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:name=".App"
         android:grantUriPermissions="true"
