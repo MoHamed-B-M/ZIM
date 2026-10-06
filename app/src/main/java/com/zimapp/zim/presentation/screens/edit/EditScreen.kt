@@ -26,7 +26,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,14 +41,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Numbers
@@ -57,7 +54,6 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.RemoveRedEye
-import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.CardDefaults
@@ -66,11 +62,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -81,7 +79,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -131,6 +131,7 @@ import com.zimapp.zim.presentation.screens.settings.widgets.SettingsBox
 import com.zimapp.zim.presentation.theme.FontUtils
 import com.zimapp.zim.presentation.screens.settings.widgets.copyToClipboard
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -383,61 +384,61 @@ private fun AudioTransportCard(viewModel: EditViewModel, modifier: Modifier = Mo
                     onClick = onRecordTap,
                 )
             } else {
-                // The transport gets the full card width. Weight morphing needs
-                // it: sharing the row with fixed-width buttons would leave the
-                // skip controls squeezed under the 48dp minimum touch target.
-                ElasticPushRow(
-                    isPlaying = isPlaying,
-                    enabled = activeClip != null,
-                    onBack = { viewModel.seekAudio(-AUDIO_SKIP_MS) },
-                    onPlayPause = { activeClip?.let(viewModel::toggleClipPlayback) },
-                    onForward = { viewModel.seekAudio(AUDIO_SKIP_MS) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    // The chip run absorbs the slack, so record and delete stay
-                    // put however many clips there are.
-                    horizontalArrangement = Arrangement.spacedBy(
-                        AUDIO_ROW_GAP,
-                        Alignment.CenterHorizontally,
-                    ),
-                ) {
-                    // The clip list, only once there is more than one to choose
-                    // between. Tapping a chip plays that clip, matching the
-                    // play/pause button's behaviour on the same selection.
-                    if (clips.size > 1) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            clips.indices.forEach { index ->
-                                FilterChip(
-                                    selected = index == activeClip,
-                                    onClick = { viewModel.toggleClipPlayback(index) },
-                                    label = {
-                                        Text(stringResource(R.string.audio_clip_label, index + 1))
-                                    },
-                                )
-                            }
+                // One row per clip: each plays alone, with its own wavy progress
+                // bar. The old FilterChip preview run is gone on purpose - it only
+                // selected a clip for a shared transport, and every clip now
+                // carries its own play control.
+                //
+                // Progress is polled, not pushed: MediaPlayer exposes position only
+                // as a getter, so while a clip plays a ticker re-reads it into
+                // state, which is what resubscribes this composition to the poll.
+                var livePositionMs by remember(isPlaying, activeClip) {
+                    mutableIntStateOf(viewModel.activeClipPositionMs())
+                }
+                LaunchedEffect(isPlaying, activeClip) {
+                    if (isPlaying) {
+                        while (true) {
+                            delay(CLIP_PROGRESS_POLL_MS)
+                            livePositionMs = viewModel.activeClipPositionMs()
                         }
+                    } else {
+                        livePositionMs = viewModel.activeClipPositionMs()
                     }
+                }
 
+                clips.indices.forEach { index ->
+                    val isActive = index == activeClip
+                    val duration = if (isActive) viewModel.activeClipDurationMs() else 0
+                    val position = if (isActive) livePositionMs else 0
+                    AudioClipRow(
+                        index = index,
+                        isPlaying = isPlaying && isActive,
+                        progress = if (duration > 0) {
+                            (position.toFloat() / duration).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        },
+                        positionMs = position,
+                        durationMs = duration,
+                        showTime = isActive && duration > 0,
+                        enabled = !isRecording,
+                        onPlayPause = { viewModel.toggleClipPlayback(index) },
+                        onDelete = { viewModel.deleteClip(index) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                // Record sits alone at the end, centred, so a new take never
+                // shifts the rows above it.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     RecordButton(
                         isRecording = isRecording,
                         recordNew = true,
                         onClick = onRecordTap,
-                    )
-                    TransportButton(
-                        icon = Icons.Rounded.Delete,
-                        contentDescription = stringResource(R.string.delete_clip),
-                        enabled = activeClip != null,
-                        onClick = { activeClip?.let(viewModel::deleteClip) },
-                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }
@@ -452,156 +453,163 @@ private val AUDIO_TOUCH_TARGET = 48.dp
 private val AUDIO_CARD_INSET = 8.dp
 private val AUDIO_ROW_GAP = 4.dp
 
-/** Skip step for the transport, in milliseconds. */
-private const val AUDIO_SKIP_MS = 5_000
-
-private val PUSH_CORNER_RADIUS = 14.dp
-private val PUSH_PILL_RADIUS = 26.dp
-private val PUSH_ROW_GAP = 6.dp
-
-// How far the tapped control grows and how far its neighbours squeeze. The
-// compression stays well clear of zero because RowScope.weight rejects 0f.
-private const val PUSH_EXPANSION = 1.30f
-private const val PUSH_COMPRESSION = 0.72f
+/** How often the wavy progress bar re-reads the player position, in milliseconds. */
+private const val CLIP_PROGRESS_POLL_MS = 120L
 
 /**
- * The bouncy spring behind the push row's weights and corner radii.
+ * The bouncy spring behind the play button's push scale.
  *
- * `spring` is generic, so one factory covers both the Float weights and the Dp
- * radii below. DampingRatioMediumBouncy overshoots past its target and settles
- * back, which is what makes a tap read as pushing rather than easing.
+ * Same values as the pasted push-row spec (DampingRatioMediumBouncy,
+ * StiffnessLow): it overshoots past its target and settles back, which is what
+ * makes a tap read as pushing rather than easing.
  */
 private fun <T> pushSpring() = spring<T>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
     stiffness = Spring.StiffnessLow,
 )
 
-private enum class PushControl { BACK, PLAY_PAUSE, FORWARD }
-
 /**
- * Back 5s / play-pause / forward 5s, morphing instead of sitting still: the
- * tapped control expands and its neighbours compress, so a tap pushes through
- * the row rather than just lighting up.
+ * One clip's row: elastic play/pause, wavy progress, per-clip delete.
+ *
+ * Each clip plays alone - tapping play on one stops whatever else is loaded
+ * first (see EditViewModel.toggleClipPlayback), because MediaPlayer holds a
+ * single stream.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ElasticPushRow(
+private fun AudioClipRow(
+    index: Int,
     isPlaying: Boolean,
+    progress: Float,
+    positionMs: Int,
+    durationMs: Int,
+    showTime: Boolean,
     enabled: Boolean,
-    onBack: () -> Unit,
     onPlayPause: () -> Unit,
-    onForward: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pushed by remember { mutableStateOf<PushControl?>(null) }
-
-    fun weightFor(control: PushControl): Float {
-        // Play/pause carries a larger base weight because it is the primary
-        // control, and the push multipliers scale that base rather than
-        // replacing it - otherwise the pushed skip would outgrow playback.
-        val base = if (control == PushControl.PLAY_PAUSE) 1.5f else 1f
-        return when (pushed) {
-            null -> base
-            control -> base * PUSH_EXPANSION
-            else -> base * PUSH_COMPRESSION
-        }
-    }
-
-    val backWeight by animateFloatAsState(
-        targetValue = weightFor(PushControl.BACK),
-        animationSpec = pushSpring(),
-        label = "pushBackWeight",
-    )
-    val playWeight by animateFloatAsState(
-        targetValue = weightFor(PushControl.PLAY_PAUSE),
-        animationSpec = pushSpring(),
-        label = "pushPlayWeight",
-    )
-    val forwardWeight by animateFloatAsState(
-        targetValue = weightFor(PushControl.FORWARD),
-        animationSpec = pushSpring(),
-        label = "pushForwardWeight",
-    )
-
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(PUSH_ROW_GAP),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        PushButton(
-            modifier = Modifier.weight(backWeight),
-            icon = Icons.Rounded.Replay5,
-            contentDescription = stringResource(R.string.skip_back_5),
+        ElasticPlayButton(
+            isPlaying = isPlaying,
             enabled = enabled,
-            isPushed = pushed == PushControl.BACK,
-            onClick = {
-                pushed = PushControl.BACK
-                onBack()
-            },
+            onClick = onPlayPause,
         )
-        PushButton(
-            modifier = Modifier.weight(playWeight),
-            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            contentDescription = stringResource(
-                if (isPlaying) R.string.pause_audio else R.string.play_audio
-            ),
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.audio_clip_label, index + 1),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (showTime) {
+                    Text(
+                        text = "${formatClipTime(positionMs)} / ${formatClipTime(durationMs)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            // Fixed 240dp wide by the library (LinearContainerWidth) - it cannot
+            // fill the row, so it sits centred under the label. Flat until the
+            // clip moves: the default amplitude is 0 below 10% progress.
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                LinearWavyProgressIndicator(progress = { progress })
+            }
+        }
+        TransportButton(
+            icon = Icons.Rounded.Delete,
+            contentDescription = stringResource(R.string.delete_clip),
             enabled = enabled,
-            isPushed = pushed == PushControl.PLAY_PAUSE,
-            filled = true,
-            onClick = {
-                pushed = PushControl.PLAY_PAUSE
-                onPlayPause()
-            },
-        )
-        PushButton(
-            modifier = Modifier.weight(forwardWeight),
-            icon = Icons.Rounded.Forward5,
-            contentDescription = stringResource(R.string.skip_forward_5),
-            enabled = enabled,
-            isPushed = pushed == PushControl.FORWARD,
-            onClick = {
-                pushed = PushControl.FORWARD
-                onForward()
-            },
+            onClick = onDelete,
+            tint = MaterialTheme.colorScheme.error,
         )
     }
 }
 
+private fun formatClipTime(ms: Int): String {
+    val totalSeconds = (ms / 1_000).coerceAtLeast(0)
+    return "${totalSeconds / 60}:${(totalSeconds % 60).toString().padStart(2, '0')}"
+}
+
+/**
+ * Play/pause with the pasted push-row's elastic feel, adapted to the real API.
+ *
+ * Two honest deviations from the pasted snippet, both forced by what actually
+ * ships in material3 1.5.0-alpha13:
+ *
+ * 1. AbsoluteSmoothCornerShape does not exist in this version (no Smooth*
+ *    shape anywhere in the artifact), so the corner morph is a plain
+ *    RoundedCornerShape driven by animateDpAsState - same animation, without
+ *    the smooth-corner look.
+ * 2. Layout-weight morphing is vacuous with a single control: one weighted
+ *    child fills the row whatever its weight is, so there is nothing to push
+ *    against. The push is expressed as a scale bounce on the same spring
+ *    instead, and the weight API is dropped rather than kept as decoration.
+ *
+ * What is kept verbatim from the snippet: the bouncy weight spring
+ * (DampingRatioMediumBouncy + StiffnessLow) now drives the scale, and the
+ * corner morph (22.dp while playing, 50.dp pill while idle) runs on
+ * MotionScheme.expressive().defaultSpatialSpec() - both of which do exist.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PushButton(
-    icon: ImageVector,
-    contentDescription: String,
+private fun ElasticPlayButton(
+    isPlaying: Boolean,
     enabled: Boolean,
-    isPushed: Boolean,
-    modifier: Modifier = Modifier,
-    filled: Boolean = false,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    // The pushed control also rounds toward a pill, so the shape change agrees
-    // with the width change instead of only the width moving.
-    val cornerRadius by animateDpAsState(
-        targetValue = if (isPushed) PUSH_PILL_RADIUS else PUSH_CORNER_RADIUS,
+    var tapped by remember { mutableStateOf(false) }
+
+    val pushScale by animateFloatAsState(
+        targetValue = if (tapped) 1.12f else 1f,
         animationSpec = pushSpring(),
-        label = "pushCornerRadius",
+        label = "elasticPlayScale",
     )
+    val playCornerRadius by animateDpAsState(
+        // Morphs between squircle and pill, per the snippet.
+        targetValue = if (isPlaying) 22.dp else 50.dp,
+        animationSpec = MotionScheme.expressive().defaultSpatialSpec(),
+        label = "elasticPlayCornerRadius",
+    )
+
     Surface(
-        onClick = onClick,
+        onClick = {
+            tapped = true
+            onClick()
+        },
         enabled = enabled,
-        shape = RoundedCornerShape(cornerRadius),
-        color = if (filled) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        contentColor = if (filled) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        modifier = modifier.height(AUDIO_TOUCH_TARGET),
+        shape = RoundedCornerShape(playCornerRadius),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        modifier = modifier
+            .size(AUDIO_TOUCH_TARGET)
+            .graphicsLayer {
+                scaleX = pushScale
+                scaleY = pushScale
+            },
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
+                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                contentDescription = stringResource(
+                    if (isPlaying) R.string.pause_audio else R.string.play_audio
+                ),
                 modifier = Modifier.size(22.dp),
             )
         }
