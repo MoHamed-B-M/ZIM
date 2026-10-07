@@ -15,8 +15,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // CI stamps workflow versions (updater compares versionCode); local fallback keeps theirs.
-        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 15
-        versionName = System.getenv("APP_VERSION_NAME") ?: "1.8"
+        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("APP_VERSION_NAME") ?: "1.0.0"
         vectorDrawables {
             useSupportLibrary = true
         }
