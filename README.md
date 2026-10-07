@@ -4,12 +4,9 @@
 
 **Fast, local-first notes for Android — Material 3 Expressive, offline by default.**
 
-<p>
-  <img src="screenshots/icon-midnight.png" alt="ZIM Icon - Midnight" width="96" height="96" style="margin: 0 16px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-  <img src="screenshots/icon-paper-ring.png" alt="ZIM Icon - Paper Ring" width="96" height="96" style="margin: 0 16px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-  <img src="screenshots/icon-stack.png" alt="ZIM Icon - Stack" width="96" height="96" style="margin: 0 16px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-</p>
-<p><em>Midnight · Paper Ring · Stack — switchable in Settings → App icon</em></p>
+<img src="screenshots/icon-midnight.png" alt="ZIM Icon - Midnight" width="96" height="96" style="border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 8px;">
+<br>
+<em>Midnight (default) — switchable to Paper Ring or Stack in Settings → App icon</em>
 
 [![License](https://img.shields.io/github/license/MoHamed-B-M/ZIM?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/blob/main/LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/MoHamed-B-M/ZIM/build.yaml?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/actions)
