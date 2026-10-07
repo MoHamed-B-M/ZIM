@@ -1,8 +1,6 @@
 package com.zimapp.zim.presentation.screens.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -22,14 +20,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,6 +33,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
@@ -57,11 +54,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -183,7 +178,7 @@ fun HomeView (
                 modifier = Modifier.fillMaxSize(),
                 state = pullState,
                 indicator = {
-                    ElasticRefreshIndicator(
+                    PullToRefreshDefaults.LoadingIndicator(
                         state = pullState,
                         isRefreshing = refreshing,
                         modifier = Modifier.align(Alignment.TopCenter),
@@ -217,92 +212,6 @@ fun HomeView (
 @Composable
 fun getContainerColor(settingsModel: SettingsViewModel): Color {
     return if (settingsModel.settings.value.extremeAmoledMode) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-}
-
-private val ELASTIC_REFRESH_SIZE = 40.dp
-private val ELASTIC_REFRESH_SPINNER = 20.dp
-
-// Elastic pull-to-refresh indicator.
-//
-// The gesture resistance is not something this adds - PullToRefreshState
-// already damps the drag by half and damps overshoot past the threshold
-// non-linearly, so distanceFraction climbs past 1.0 as you pull harder. What the
-// stock indicator does with that surplus is nothing: it crossfades and holds a
-// circle. The stretch below is what turns the existing tension into something
-// you can see.
-//
-// Note the API limit: rememberPullToRefreshState() takes no arguments and the
-// nested-scroll connection is internal, so the physics of the pull itself cannot
-// be retuned in this material3 version - only what is drawn from it.
-@Composable
-private fun ElasticRefreshIndicator(
-    state: PullToRefreshState,
-    isRefreshing: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val fraction = state.distanceFraction
-    // How far past the threshold the pull has gone, capped so a long drag cannot
-    // smear the container.
-    val overshoot = (fraction - 1f).coerceIn(0f, 1f)
-
-    // Sprung, not linear: an elastic band snaps back with a wobble, and a
-    // straight slide reads as an ordinary list moving.
-    val offset by animateDpAsState(
-        // Same offset maths the stock indicator uses, so this parks exactly
-        // where the built-in one would: hidden above the edge at rest, fully
-        // revealed at the threshold.
-        targetValue = (
-            PullToRefreshDefaults.IndicatorMaxDistance.value * fraction -
-                ELASTIC_REFRESH_SIZE.value
-            ).dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "elasticRefreshOffset",
-    )
-
-    Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-        Surface(
-            shape = CircleShape,
-            color = PullToRefreshDefaults.indicatorContainerColor,
-            modifier = Modifier
-                .size(ELASTIC_REFRESH_SIZE)
-                .offset(y = offset)
-                // Squash and stretch on overshoot: wider and flatter the further
-                // past the threshold, like a band being pulled taut.
-                .graphicsLayer {
-                    scaleX = 1f + overshoot * 0.26f
-                    scaleY = 1f - overshoot * 0.20f
-                }
-                // Faded rather than left to the negative offset to hide it: a Box
-                // does not clip, so at rest the container would sit above the top
-                // edge where a translucent app bar could reveal it.
-                .alpha(if (isRefreshing) 1f else fraction.coerceIn(0f, 1f)),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (isRefreshing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(ELASTIC_REFRESH_SPINNER),
-                        strokeWidth = 2.5.dp,
-                        color = PullToRefreshDefaults.indicatorColor,
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = stringResource(R.string.refresh),
-                        tint = PullToRefreshDefaults.indicatorColor,
-                        modifier = Modifier
-                            .size(ELASTIC_REFRESH_SPINNER)
-                            // Rotates with the pull, so the gesture has a
-                            // direction and a visible ceiling before releasing
-                            // commits to a refresh.
-                            .graphicsLayer { rotationZ = fraction * 180f },
-                    )
-                }
-            }
-        }
-    }
 }
 
 // M3 FAB menu: a collapsed FAB that expands into labelled actions. Kept as
