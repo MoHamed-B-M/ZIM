@@ -75,6 +75,14 @@ ZIM is a lightweight, privacy-focused Android notes app built with **Material 3 
 
 ---
 
+## Screenshots
+
+| Home | Editor | Settings |
+|------|--------|----------|
+| <img src="screenshots/Home.png" alt="Home notes grid with search and New Note button" width="240"> | <img src="screenshots/Note.png" alt="Note editor with edit/preview toggle" width="240"> | <img src="screenshots/settings.png" alt="Grouped settings screen" width="240"> |
+
+---
+
 ## Tech Stack
 
 | Technology | Version |
