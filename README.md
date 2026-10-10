@@ -13,7 +13,7 @@
 [![Release](https://img.shields.io/github/v/release/MoHamed-B-M/ZIM?style=for-the-badge&include_prereleases&label=release)](https://github.com/MoHamed-B-M/ZIM/releases)
 [![Stars](https://img.shields.io/github/stars/MoHamed-B-M/ZIM?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/stargazers)
 <br>
-<a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=zim"><img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="52" style="border-radius: 16px; margin-top: 8px;"></a>
+<a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=zim"><img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="36" style="border-radius: 12px; margin-top: 6px;"></a>
 
 <img src="screenshots/Home.png" alt="Home notes grid with search and New Note button" width="240"> <img src="screenshots/Note.png" alt="Note editor with edit/preview toggle" width="240"> <img src="screenshots/settings.png" alt="Grouped settings screen" width="240">
 
