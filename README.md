@@ -12,12 +12,16 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/MoHamed-B-M/ZIM/build.yaml?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/actions)
 [![Release](https://img.shields.io/github/v/release/MoHamed-B-M/ZIM?style=for-the-badge&include_prereleases&label=release)](https://github.com/MoHamed-B-M/ZIM/releases)
 [![Stars](https://img.shields.io/github/stars/MoHamed-B-M/ZIM?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/stargazers)
+[![Downloads (All Releases)](https://img.shields.io/github/downloads/MoHamed-B-M/ZIM/total?style=for-the-badge&color=2ea44f)](https://github.com/MoHamed-B-M/ZIM/releases)
+[![Repo Size](https://img.shields.io/github/repo-size/MoHamed-B-M/ZIM?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM)
+[![Open Issues](https://img.shields.io/github/issues/MoHamed-B-M/ZIM?style=for-the-badge)](https://github.com/MoHamed-B-M/ZIM/issues)
 <br>
 <a href="https://rookieenough.github.io/Orion-Data/redirect.html?id=zim"><img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="36" style="border-radius: 12px; margin-top: 6px;"></a>
 
 <img src="screenshots/Home.png" alt="Home notes grid with search and New Note button" width="240"> <img src="screenshots/Note.png" alt="Note editor with edit/preview toggle" width="240"> <img src="screenshots/settings.png" alt="Grouped settings screen" width="240">
 
 </div>
+
 
 ---
 
